@@ -1,6 +1,6 @@
 {
   "private": true,
   "scripts": {
-    "test": "node test/draw.test.js"
+    "test": "node test/chart-core.test.js && node test/draw.test.js"
   }
 }

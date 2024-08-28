@@ -1,49 +1,12 @@
-define([], function() {
+define(['./chart-core'], function(core) {
 	'use strict';
-
-	function resolveValue(value) {
-		return typeof value === 'function' ? value() : value;
-	}
-
-	function toPositiveNumber(value, fallback) {
-		let number = Number(resolveValue(value));
-		return Number.isFinite(number) && number > 0 ? number : fallback;
-	}
-
-	function toFiniteNumber(value) {
-		let number = Number(value);
-		return Number.isFinite(number) ? number : null;
-	}
-
-	function formatTick(value) {
-		return Number.isInteger(value) ? value + "" : Number(value.toFixed(2)) + "";
-	}
-
-	function normalizeSeriesData(data, targetLength) {
-		let normalized = Array.isArray(data) ? data.slice() : [];
-
-		if (targetLength === 0) {
-			return [];
-		}
-
-		if (normalized.length > targetLength) {
-			normalized = normalized.slice(normalized.length - targetLength);
-		}
-
-		while (normalized.length < targetLength) {
-			normalized.unshift(0);
-		}
-
-		return normalized.map(toFiniteNumber);
-	}
 
 	// ---------------------------------------------------------------------------------
 	class draw {
 		constructor(koCanvas, koWidth, koHeight) {
 			this.win = {x: 0, y: 0};
-			this.plotWin = {x0: 0, y0: 0, xn: 0, yn: 0};
 
-			let canvasId = resolveValue(koCanvas);
+			let canvasId = core.resolveValue(koCanvas);
 			this.canvas = document.getElementById(canvasId);
 
 			if (!this.canvas) {
@@ -56,8 +19,8 @@ define([], function() {
 				throw new Error("Canvas 2D context is not available: " + canvasId);
 			}
 
-			this.win.x = toPositiveNumber(koWidth, this.canvas.width || this.canvas.clientWidth || 300);
-			this.win.y = toPositiveNumber(koHeight, this.canvas.height || this.canvas.clientHeight || 150);
+			this.win.x = core.toPositiveNumber(koWidth, this.canvas.width || this.canvas.clientWidth || 300);
+			this.win.y = core.toPositiveNumber(koHeight, this.canvas.height || this.canvas.clientHeight || 150);
 			this.canvas.width = this.win.x;
 			this.canvas.height = this.win.y;
 
@@ -100,21 +63,21 @@ define([], function() {
 			this.ctx.font = this.font.style;
 		}
 
+		applyModel(model) {
+			this.x = model.x;
+			this.y = model.y;
+			this.miny = model.miny;
+			this.maxy = model.maxy;
+			this.plotWin = model.plotWin;
+			this.plot = model.plot;
+			this.legendData = model.legendData;
+			this.minXTextSize = model.minXTextSize;
+			this.maxXTextSize = model.maxXTextSize;
+			this.maxYTextSize = model.maxYTextSize;
+		}
+
 		resetDataState() {
-			this.x = [];
-			this.y = [];
-			this.miny = 0;
-			this.maxy = 0;
-			this.plot = {x: [], n: 0, y: [], hx: 0, hy: 0};
-
-			this.legendData = {
-				head: {text: "", x: 0, y: 0},
-				lines: []
-			};
-
-			this.minXTextSize = {width: 0};
-			this.maxXTextSize = {width: 0};
-			this.maxYTextSize = {width: 0};
+			this.applyModel(core.createEmptyState());
 		}
 
 		measure(value) {
@@ -146,11 +109,14 @@ define([], function() {
 			}
 
 			for (let key in font) {
-				if (key === "style" || key === "r") {
+				if (key === "r") {
 					continue;
 				}
 
-				if (key === "px") {
+				if (key === "style") {
+					this.font.variant = font[key];
+				}
+				else if (key === "px") {
 					let px = Number(font[key]);
 					if (Number.isFinite(px) && px > 0) {
 						this.font.px = px;
@@ -165,125 +131,19 @@ define([], function() {
 		}
 
 		init(x, y, head) {
-			this.resetDataState();
-
-			let series = Array.isArray(y) ? y : [];
-			let labels = Array.isArray(x) ? x.slice() : [];
-
-			if (labels.length === 0 && series.length > 0) {
-				let maxLength = 0;
-				for (let item of series) {
-					if (item && Array.isArray(item.data)) {
-						maxLength = Math.max(maxLength, item.data.length);
-					}
-				}
-				labels = Array.from({length: maxLength}, function(_, index) { return index; });
-			}
-
-			this.x = labels;
-			this.minXTextSize = this.measure(labels[0]);
-			this.maxXTextSize = this.measure(labels[labels.length - 1]);
-
-			let finiteValues = [];
-
-			for (let i = 0; i < series.length; i++) {
-				let source = series[i] || {};
-				let line = Object.assign({}, source.legend || {});
-
-				if (line.text !== undefined) {
-					line.text = String(line.text);
-					line.y = this.font.px * (i + 2);
-					line.x = Math.round((this.win.x - this.measure(line.text).width) / 2);
-					line.r = Math.max(1, (this.font.px - 2) / 2);
-				}
-
-				this.legendData.lines.push(line);
-
-				let ydata = normalizeSeriesData(source.data, labels.length);
-				for (let value of ydata) {
-					if (value !== null) {
-						finiteValues.push(value);
-					}
-				}
-
-				this.y.push({data: ydata});
-			}
-
-			if (finiteValues.length > 0) {
-				this.maxy = Math.max.apply(null, finiteValues);
-				this.miny = Math.min.apply(null, finiteValues);
-			}
-			else {
-				this.maxy = 1;
-				this.miny = 0;
-			}
-
-			let minYTextSize = this.measure(formatTick(this.miny));
-			let maxYTextSize = this.measure(formatTick(this.maxy));
-			this.maxYTextSize = minYTextSize.width > maxYTextSize.width ? minYTextSize : maxYTextSize;
-
-			let headText = head && head.text !== undefined ? String(head.text) : "";
-			if (headText.length > 0) {
-				this.legendData.head.text = headText;
-				this.legendData.head.x = Math.round((this.win.x - this.measure(headText).width) / 2);
-				this.legendData.head.y = this.font.px;
-			}
-
-			let legendBottom = this.legendData.head.text ? this.legendData.head.y + this.font.px : 0;
-			for (let line of this.legendData.lines) {
-				if (line.text !== undefined) {
-					legendBottom = Math.max(legendBottom, line.y + this.font.px);
-				}
-			}
-
-			this.plotWin.y0 = Math.max(this.font.px, legendBottom + this.font.px);
-			this.plotWin.x0 = Math.max(this.maxYTextSize.width, this.maxXTextSize.width) + this.font.px;
-			this.plotWin.xn = Math.max(this.plotWin.x0, this.win.x - this.minXTextSize.width);
-			this.plotWin.yn = Math.max(this.plotWin.y0, this.win.y - 2 * this.font.px);
-
-			this.rotateDataToPlot();
+			this.applyModel(core.createModel({
+				labels: x,
+				series: y,
+				head: head,
+				width: this.win.x,
+				height: this.win.y,
+				fontPx: this.font.px,
+				measureText: this.measure.bind(this)
+			}));
 		}
 
 		rotateDataToPlot() {
-			this.plot = {x: [], n: 0, y: [], hx: 0, hy: 0};
-
-			let count = this.x.length;
-			if (count === 0) {
-				return;
-			}
-
-			let plotdx = Math.max(0, this.plotWin.xn - this.plotWin.x0);
-			let plotdy = Math.max(0, this.plotWin.yn - this.plotWin.y0);
-			let steps = Math.max(count - 1, 1);
-			let dy = this.maxy - this.miny;
-
-			this.plot.hx = count > 1 ? plotdx / steps : 0;
-			this.plot.hy = count > 1 ? plotdy / steps : plotdy;
-
-			for (let i = 0; i < count; i++) {
-				let xi = count === 1
-					? this.plotWin.x0 + plotdx / 2
-					: this.plotWin.x0 + i * this.plot.hx;
-				this.plot.x.push(xi);
-			}
-
-			for (let yi of this.y) {
-				let ploty = [];
-
-				for (let yidata of yi.data) {
-					if (yidata === null) {
-						ploty.push(null);
-						continue;
-					}
-
-					let ratio = dy === 0 ? 0.5 : (yidata - this.miny) / dy;
-					ploty.push(this.plotWin.yn - plotdy * ratio);
-				}
-
-				this.plot.y.push(ploty);
-			}
-
-			this.plot.n = count;
+			this.plot = core.createPlotModel(this.x, this.y, this.plotWin, this.miny, this.maxy);
 		}
 
 		axis(color = "#000000", lineWidth = 1) {
@@ -352,7 +212,7 @@ define([], function() {
 				this.ctx.lineTo(this.plotWin.x0 - dot, y);
 
 				if (i % filtery === 0 || i === tickCount - 1) {
-					this.ctx.fillText(formatTick(this.miny + i * valueStep), this.plotWin.x0 - this.font.px, y);
+					this.ctx.fillText(core.formatTick(this.miny + i * valueStep), this.plotWin.x0 - this.font.px, y);
 				}
 			}
 

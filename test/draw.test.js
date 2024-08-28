@@ -64,7 +64,8 @@ function createFakeContext() {
 }
 
 function createHarness() {
-	const code = fs.readFileSync(path.join(__dirname, '..', 'draw.js'), 'utf8');
+	const coreCode = fs.readFileSync(path.join(__dirname, '..', 'chart-core.js'), 'utf8');
+	const drawCode = fs.readFileSync(path.join(__dirname, '..', 'draw.js'), 'utf8');
 	const ctx = createFakeContext();
 	const canvas = {
 		width: 0,
@@ -76,13 +77,26 @@ function createHarness() {
 			return ctx;
 		}
 	};
+	const modules = {};
 	let drawModule;
+	let loadingModule = null;
 
 	const sandbox = {
 		define(deps, factory) {
 			assert(Array.isArray(deps));
-			assert.strictEqual(deps.length, 0);
-			drawModule = factory();
+			const resolvedDeps = deps.map(function(dep) {
+				assert(dep in modules, 'missing AMD dependency: ' + dep);
+				return modules[dep];
+			});
+			const exported = factory.apply(null, resolvedDeps);
+
+			if (loadingModule === 'chart-core') {
+				modules['./chart-core'] = exported;
+				modules['chart-core'] = exported;
+			}
+			else if (loadingModule === 'draw') {
+				drawModule = exported;
+			}
 		},
 		document: {
 			getElementById(id) {
@@ -108,7 +122,10 @@ function createHarness() {
 	};
 
 	vm.createContext(sandbox);
-	vm.runInContext(code, sandbox, {filename: 'draw.js'});
+	loadingModule = 'chart-core';
+	vm.runInContext(coreCode, sandbox, {filename: 'chart-core.js'});
+	loadingModule = 'draw';
+	vm.runInContext(drawCode, sandbox, {filename: 'draw.js'});
 
 	return {drawModule, ctx, canvas};
 }
