@@ -5,6 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
+function plain(value) {
+	return JSON.parse(JSON.stringify(value));
+}
+
 function assertFiniteCoordinates(args) {
 	for (let arg of args) {
 		if (typeof arg === 'number') {
@@ -247,4 +251,36 @@ runTest('longer series are aligned to the latest labels', function() {
 	], {text: ''});
 
 	assert.deepStrictEqual(chart.y[0].data, [3, 4]);
+});
+
+runTest('append adds live samples and respects maxPoints', function() {
+	const {drawModule} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init([], [
+		{legend: {id: 'rx', text: 'rx', color: 'green'}},
+		{legend: {id: 'tx', text: 'tx', color: 'blue'}}
+	], {text: 'Traffic'}, {maxPoints: 2});
+
+	chart.append('00:01', {rx: 10, tx: 20});
+	chart.append('00:02', {rx: 30, tx: 40});
+	chart.append('00:03', {rx: 50, tx: 60});
+
+	assert.deepStrictEqual(plain(chart.x), ['00:02', '00:03']);
+	assert.deepStrictEqual(plain(chart.y[0].data), [30, 50]);
+	assert.deepStrictEqual(plain(chart.y[1].data), [40, 60]);
+	assertFinitePlot(chart);
+});
+
+runTest('append can render immediately when requested', function() {
+	const {drawModule, ctx} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init([], [
+		{legend: {id: 'rx', text: 'rx', color: 'green'}}
+	], {text: 'Traffic'}, {maxPoints: 3});
+	chart.append('00:01', {rx: 10}, {render: true});
+
+	assert(ctx.calls.some(function(call) { return call[0] === 'clearRect'; }), 'render should clear the canvas');
+	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === 'Traffic'; }), 'render should draw the title');
 });

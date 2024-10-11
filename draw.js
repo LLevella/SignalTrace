@@ -59,6 +59,7 @@ define(['./chart-core'], function(core) {
 				}
 			});
 
+			this.dataSet = core.createDataSet([], [], {}, null);
 			this.resetDataState();
 			this.ctx.font = this.font.style;
 		}
@@ -77,6 +78,7 @@ define(['./chart-core'], function(core) {
 		}
 
 		resetDataState() {
+			this.dataSet = core.createDataSet([], [], {}, null);
 			this.applyModel(core.createEmptyState());
 		}
 
@@ -128,18 +130,46 @@ define(['./chart-core'], function(core) {
 			}
 
 			this.ctx.font = this.font.style;
+
+			if (this.dataSet) {
+				this.applyDataSet(this.dataSet);
+			}
 		}
 
-		init(x, y, head) {
+		applyDataSet(dataSet) {
+			this.dataSet = dataSet;
 			this.applyModel(core.createModel({
-				labels: x,
-				series: y,
-				head: head,
+				dataSet: this.dataSet,
 				width: this.win.x,
 				height: this.win.y,
 				fontPx: this.font.px,
 				measureText: this.measure.bind(this)
 			}));
+		}
+
+		init(x, y, head, options) {
+			this.applyDataSet(core.createDataSet(x, y, head, options));
+			return this;
+		}
+
+		append(label, values, options) {
+			options = options || {};
+			this.applyDataSet(core.appendSample(this.dataSet, label, values, options));
+
+			if (options.render) {
+				this.render();
+			}
+
+			return this;
+		}
+
+		render() {
+			this.clear();
+			this.axis();
+			this.pointsOnAxis();
+			this.legend();
+			this.graph();
+			return this;
 		}
 
 		rotateDataToPlot() {

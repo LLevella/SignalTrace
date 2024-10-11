@@ -133,6 +133,45 @@ runTest('createModel keeps invalid values as plot gaps', function() {
 	assertFinitePlot(model);
 });
 
+runTest('createDataSet applies maxPoints to labels and series data', function() {
+	const core = loadCore();
+	const dataSet = core.createDataSet(['a', 'b', 'c', 'd'], [
+		{data: [1, 2, 3, 4], legend: {id: 'rx', text: 'rx'}}
+	], {text: 'Traffic'}, {maxPoints: 2});
+
+	assert.deepStrictEqual(plain(dataSet.labels), ['c', 'd']);
+	assert.deepStrictEqual(plain(dataSet.series[0].data), [3, 4]);
+	assert.strictEqual(dataSet.maxPoints, 2);
+});
+
+runTest('appendSample appends object values by series id and keeps maxPoints', function() {
+	const core = loadCore();
+	let dataSet = core.createDataSet(['a', 'b'], [
+		{data: [1, 2], legend: {id: 'rx', text: 'RX'}},
+		{data: [10, 20], legend: {id: 'tx', text: 'TX'}}
+	], {text: 'Traffic'}, {maxPoints: 3});
+
+	dataSet = core.appendSample(dataSet, 'c', {rx: 3, tx: 30});
+	dataSet = core.appendSample(dataSet, 'd', {rx: 4, tx: 40});
+
+	assert.deepStrictEqual(plain(dataSet.labels), ['b', 'c', 'd']);
+	assert.deepStrictEqual(plain(dataSet.series[0].data), [2, 3, 4]);
+	assert.deepStrictEqual(plain(dataSet.series[1].data), [20, 30, 40]);
+});
+
+runTest('appendSample infers series from object values when no series exist yet', function() {
+	const core = loadCore();
+	const dataSet = core.appendSample(null, 'a', {rx: 1, tx: 2}, {maxPoints: 3});
+
+	assert.deepStrictEqual(plain(dataSet.labels), ['a']);
+	assert.deepStrictEqual(plain(dataSet.series.map(function(series) {
+		return series.legend.id;
+	})), ['rx', 'tx']);
+	assert.deepStrictEqual(plain(dataSet.series.map(function(series) {
+		return series.data[0];
+	})), [1, 2]);
+});
+
 runTest('single-point plot is finite and centered in the plot window', function() {
 	const core = loadCore();
 	const model = core.createModel({

@@ -17,7 +17,9 @@
 - показывать подписи осей и простую легенду;
 - работать с Knockout observable-значениями для `id`, ширины и высоты canvas;
 - принимать обычные значения вместо observable-функций;
-- безопасно переинициализироваться через повторный `init()`.
+- безопасно переинициализироваться через повторный `init()`;
+- добавлять live-точки через `append(label, values)`;
+- ограничивать историю через `maxPoints`.
 
 ## Устройство
 
@@ -55,6 +57,22 @@ define(['core/draw'], function(draw) {
 });
 ```
 
+## Live update
+
+```js
+define(['core/draw'], function(draw) {
+	var chart = draw.create('traffic-canvas', 500, 300);
+
+	chart.init([], [
+		{legend: {id: 'rx', text: 'rx', color: 'green'}},
+		{legend: {id: 'tx', text: 'tx', color: 'blue'}}
+	], {text: 'Traffic'}, {maxPoints: 300});
+
+	chart.append('00:01', {rx: 120, tx: 84});
+	chart.render();
+});
+```
+
 ## Проверки
 
 ```sh
@@ -69,16 +87,18 @@ npm test
 
 ## Roadmap
 
+Подробный план разработки сохранен в [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md).
+
 1. Стабилизировать legacy API: покрыть тестами layout, подписи осей, цвета,
    пропущенные значения и разные размеры canvas.
-2. Расширить чистое ядро: расчет ticks, gaps, fixed/autoscale Y, units и
+2. Добавить live API: `maxPoints`, `append(label, values)` и `render()`.
+3. Расширить чистое ядро: расчет ticks, gaps, fixed/autoscale Y, units и
    форматтеры без DOM и без Knockout.
-3. Добавить современную упаковку: TypeScript, ESM/CJS bundle, npm package,
+4. Добавить современную упаковку: TypeScript, ESM/CJS bundle, npm package,
    typed declarations, Vite/Vitest/Playwright и GitHub Actions.
-4. Сделать продуктовую нишу явной: микро-библиотека для live time-series
+5. Сделать продуктовую нишу явной: микро-библиотека для live time-series
    графиков в роутерах, IoT-панелях, embedded dashboards и сетевом мониторинге.
-5. Добавить ожидаемые фичи: HiDPI canvas, responsive resize, ring buffer,
-   `append()`, units/formatters, gaps, fixed/autoscale Y, cursor tooltip,
-   legend toggle и thresholds.
-6. Выпустить адаптеры: Web Component как базовый способ использования, затем
+6. Добавить ожидаемые фичи: HiDPI canvas, responsive resize, units/formatters,
+   gaps, fixed/autoscale Y, cursor tooltip, legend toggle и thresholds.
+7. Выпустить адаптеры: Web Component как базовый способ использования, затем
    тонкие wrappers для React, Vue, Svelte и legacy Knockout.

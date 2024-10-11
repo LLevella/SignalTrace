@@ -74,6 +74,159 @@ define([], function() {
 		return normalized.map(toFiniteNumber);
 	}
 
+	function normalizeMaxPoints(value) {
+		let number = Number(resolveValue(value));
+		return Number.isFinite(number) && number > 0 ? Math.floor(number) : null;
+	}
+
+	function readMaxPoints(options, fallback) {
+		let fallbackValue = normalizeMaxPoints(fallback);
+
+		if (options === undefined || options === null) {
+			return fallbackValue;
+		}
+
+		if (typeof options === 'object' && !Array.isArray(options)) {
+			if ('maxPoints' in options) {
+				return normalizeMaxPoints(options.maxPoints);
+			}
+
+			return fallbackValue;
+		}
+
+		return normalizeMaxPoints(options);
+	}
+
+	function limitArray(items, maxPoints) {
+		let limited = Array.isArray(items) ? items.slice() : [];
+
+		if (maxPoints !== null && limited.length > maxPoints) {
+			return limited.slice(limited.length - maxPoints);
+		}
+
+		return limited;
+	}
+
+	function cloneLegend(legend) {
+		return Object.assign({}, legend || {});
+	}
+
+	function cloneHead(head) {
+		return Object.assign({}, head || {});
+	}
+
+	function createDataSet(labels, series, head, options) {
+		let rawSeries = Array.isArray(series) ? series : [];
+		let maxPoints = readMaxPoints(options, null);
+		let normalizedLabels = limitArray(normalizeLabels(labels, rawSeries), maxPoints);
+		let normalizedSeries = [];
+
+		for (let item of rawSeries) {
+			let source = item || {};
+			normalizedSeries.push({
+				data: normalizeSeriesData(source.data, normalizedLabels.length),
+				legend: cloneLegend(source.legend)
+			});
+		}
+
+		return {
+			labels: normalizedLabels,
+			series: normalizedSeries,
+			head: cloneHead(head),
+			maxPoints: maxPoints
+		};
+	}
+
+	function getSeriesKey(series, index) {
+		let legend = series && series.legend ? series.legend : {};
+
+		if (legend.id !== undefined && legend.id !== null) {
+			return String(legend.id);
+		}
+
+		if (legend.text !== undefined && legend.text !== null) {
+			return String(legend.text);
+		}
+
+		return String(index);
+	}
+
+	function inferSeriesFromValues(values) {
+		if (Array.isArray(values)) {
+			return values.map(function(_, index) {
+				return {data: [], legend: {id: String(index), text: String(index)}};
+			});
+		}
+
+		if (values && typeof values === 'object') {
+			return Object.keys(values).map(function(key) {
+				return {data: [], legend: {id: key, text: key}};
+			});
+		}
+
+		return [{data: [], legend: {id: 'value', text: 'value'}}];
+	}
+
+	function hasOwnValue(values, key) {
+		return values && Object.prototype.hasOwnProperty.call(values, key);
+	}
+
+	function getAppendValue(values, series, index) {
+		if (Array.isArray(values)) {
+			return values[index];
+		}
+
+		if (values && typeof values === 'object') {
+			let key = getSeriesKey(series, index);
+			let legend = series && series.legend ? series.legend : {};
+
+			if (hasOwnValue(values, key)) {
+				return values[key];
+			}
+
+			if (legend.text !== undefined && hasOwnValue(values, String(legend.text))) {
+				return values[String(legend.text)];
+			}
+
+			if (hasOwnValue(values, String(index))) {
+				return values[String(index)];
+			}
+
+			return null;
+		}
+
+		return index === 0 ? values : null;
+	}
+
+	function appendSample(dataSet, label, values, options) {
+		dataSet = dataSet || createDataSet([], [], {}, null);
+
+		let maxPoints = readMaxPoints(options, dataSet.maxPoints);
+		let current = createDataSet(dataSet.labels, dataSet.series, dataSet.head, {maxPoints: maxPoints});
+		let series = current.series.length > 0 ? current.series : inferSeriesFromValues(values);
+		let labels = limitArray(current.labels.concat([label]), maxPoints);
+		let appendedSeries = [];
+
+		for (let i = 0; i < series.length; i++) {
+			let source = series[i] || {};
+			let data = Array.isArray(source.data) ? source.data.slice() : [];
+			data.push(getAppendValue(values, source, i));
+			data = normalizeSeriesData(limitArray(data, maxPoints), labels.length);
+
+			appendedSeries.push({
+				data: data,
+				legend: cloneLegend(source.legend)
+			});
+		}
+
+		return {
+			labels: labels,
+			series: appendedSeries,
+			head: cloneHead(current.head),
+			maxPoints: maxPoints
+		};
+	}
+
 	function createEmptyState() {
 		return {
 			x: [],
@@ -144,8 +297,11 @@ define([], function() {
 		options = options || {};
 
 		let state = createEmptyState();
-		let series = Array.isArray(options.series) ? options.series : [];
-		let labels = normalizeLabels(options.labels, series);
+		let dataSet = options.dataSet || createDataSet(options.labels, options.series, options.head, {
+			maxPoints: options.maxPoints
+		});
+		let series = Array.isArray(dataSet.series) ? dataSet.series : [];
+		let labels = Array.isArray(dataSet.labels) ? dataSet.labels : [];
 		let width = toPositiveNumber(options.width, 300);
 		let height = toPositiveNumber(options.height, 150);
 		let fontPx = toPositiveNumber(options.fontPx, 12);
@@ -193,7 +349,7 @@ define([], function() {
 		let maxYTextSize = measureValue(measureText, formatTick(state.maxy));
 		state.maxYTextSize = minYTextSize.width > maxYTextSize.width ? minYTextSize : maxYTextSize;
 
-		let head = options.head || {};
+		let head = dataSet.head || {};
 		let headText = head.text !== undefined ? String(head.text) : "";
 		if (headText.length > 0) {
 			state.legendData.head.text = headText;
@@ -218,12 +374,17 @@ define([], function() {
 	}
 
 	return {
+		appendSample: appendSample,
+		createDataSet: createDataSet,
 		createEmptyState: createEmptyState,
 		createModel: createModel,
 		createPlotModel: createPlotModel,
 		formatTick: formatTick,
+		getSeriesKey: getSeriesKey,
 		normalizeLabels: normalizeLabels,
+		normalizeMaxPoints: normalizeMaxPoints,
 		normalizeSeriesData: normalizeSeriesData,
+		readMaxPoints: readMaxPoints,
 		resolveValue: resolveValue,
 		toFiniteNumber: toFiniteNumber,
 		toPositiveNumber: toPositiveNumber
