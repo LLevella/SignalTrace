@@ -74,17 +74,17 @@ chart.render();
 
 ## Фаза 4. Rendering Quality
 
-Статус: planned.
+Статус: done.
 
 Задачи:
 
-- HiDPI/Retina scaling;
-- responsive resize;
-- более аккуратный расчет ticks;
-- форматтеры для осей и единиц измерения;
-- gaps для пропущенных данных;
-- fixed Y scale и autoscale options;
-- thresholds/limit lines.
+- добавлен HiDPI/Retina scaling;
+- добавлен `resize(width, height, options)`;
+- добавлен расчет Y ticks в core;
+- добавлены `xFormatter`, `yFormatter`, `yUnit`;
+- сохранены gaps для пропущенных данных;
+- добавлены `yMin`, `yMax`, `yPadding`, `yTickCount`;
+- добавлены thresholds/limit lines.
 
 ## Фаза 5. Modern Packaging
 

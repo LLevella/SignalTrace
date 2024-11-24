@@ -28,6 +28,9 @@ function createFakeContext() {
 		lineWidth: 1,
 		textBaseline: '',
 		textAlign: '',
+		setTransform(...args) {
+			calls.push(['setTransform', ...args]);
+		},
 		beginPath() {
 			calls.push(['beginPath']);
 		},
@@ -67,15 +70,17 @@ function createFakeContext() {
 	};
 }
 
-function createHarness() {
+function createHarness(options) {
+	options = options || {};
 	const coreCode = fs.readFileSync(path.join(__dirname, '..', 'chart-core.js'), 'utf8');
 	const drawCode = fs.readFileSync(path.join(__dirname, '..', 'draw.js'), 'utf8');
 	const ctx = createFakeContext();
 	const canvas = {
 		width: 0,
 		height: 0,
-		clientWidth: 500,
-		clientHeight: 300,
+		clientWidth: options.clientWidth || 500,
+		clientHeight: options.clientHeight || 300,
+		style: {},
 		getContext(type) {
 			assert.strictEqual(type, '2d');
 			return ctx;
@@ -109,6 +114,7 @@ function createHarness() {
 			}
 		},
 		window: {
+			devicePixelRatio: options.devicePixelRatio || 1,
 			getComputedStyle() {
 				return {
 					getPropertyValue(name) {
@@ -169,6 +175,8 @@ runTest('constructor uses the resolved element instead of a global canvas', func
 	assert.strictEqual(chart.canvas, canvas);
 	assert.strictEqual(canvas.width, 500);
 	assert.strictEqual(canvas.height, 300);
+	assert.strictEqual(canvas.style.width, '500px');
+	assert.strictEqual(canvas.style.height, '300px');
 });
 
 runTest('init does not mutate input data or legend objects', function() {
@@ -283,4 +291,55 @@ runTest('append can render immediately when requested', function() {
 
 	assert(ctx.calls.some(function(call) { return call[0] === 'clearRect'; }), 'render should clear the canvas');
 	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === 'Traffic'; }), 'render should draw the title');
+});
+
+runTest('HiDPI canvas uses physical pixels while preserving logical dimensions', function() {
+	const {drawModule, ctx, canvas} = createHarness({devicePixelRatio: 2});
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	assert.strictEqual(chart.pixelRatio, 2);
+	assert.strictEqual(canvas.width, 1000);
+	assert.strictEqual(canvas.height, 600);
+	assert.strictEqual(canvas.style.width, '500px');
+	assert.strictEqual(canvas.style.height, '300px');
+	assert(ctx.calls.some(function(call) {
+		return call[0] === 'setTransform' && call[1] === 2 && call[4] === 2;
+	}), 'canvas context should be scaled to the device pixel ratio');
+});
+
+runTest('resize updates logical dimensions, recomputes model and can render', function() {
+	const {drawModule, ctx, canvas} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['a', 'b'], [{data: [1, 2], legend: {text: 'rx'}}], {text: 'Traffic'});
+	chart.resize(320, 180, {render: true});
+
+	assert.strictEqual(chart.win.x, 320);
+	assert.strictEqual(chart.win.y, 180);
+	assert.strictEqual(canvas.width, 320);
+	assert.strictEqual(canvas.height, 180);
+	assert.strictEqual(canvas.style.width, '320px');
+	assert.strictEqual(canvas.style.height, '180px');
+	assert(ctx.calls.some(function(call) { return call[0] === 'clearRect'; }), 'resize render should clear canvas');
+	assertFinitePlot(chart);
+});
+
+runTest('render draws formatted ticks and threshold lines', function() {
+	const {drawModule, ctx} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init([0, 1], [
+		{data: [10, 20], legend: {id: 'rx', text: 'rx', color: 'green'}}
+	], {text: 'Traffic'}, {
+		yMin: 0,
+		yMax: 20,
+		yTickCount: 2,
+		yUnit: '%',
+		thresholds: [{value: 15, label: 'warn', color: 'orange'}]
+	});
+	chart.render();
+
+	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === '0%'; }), 'render should draw formatted y tick labels');
+	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === '20%'; }), 'render should draw formatted y tick labels');
+	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === 'warn'; }), 'render should draw threshold labels');
 });

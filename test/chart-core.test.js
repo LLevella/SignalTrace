@@ -133,6 +133,58 @@ runTest('createModel keeps invalid values as plot gaps', function() {
 	assertFinitePlot(model);
 });
 
+runTest('createModel supports fixed Y scale, units and tick count', function() {
+	const core = loadCore();
+	const model = core.createModel({
+		labels: ['a', 'b', 'c'],
+		series: [{data: [25, 50, 75]}],
+		width: 500,
+		height: 300,
+		fontPx: 12,
+		yMin: 0,
+		yMax: 100,
+		yTickCount: 3,
+		yUnit: ' Mbps'
+	});
+
+	assert.strictEqual(model.miny, 0);
+	assert.strictEqual(model.maxy, 100);
+	assert.deepStrictEqual(plain(model.yTicks.map(function(tick) {
+		return tick.label;
+	})), ['0 Mbps', '50 Mbps', '100 Mbps']);
+	assertFinitePlot(model);
+});
+
+runTest('createModel supports x/y formatters and thresholds', function() {
+	const core = loadCore();
+	const model = core.createModel({
+		labels: [0, 1],
+		series: [{data: [10, 20]}],
+		width: 500,
+		height: 300,
+		fontPx: 12,
+		yMin: 0,
+		yMax: 20,
+		yTickCount: 2,
+		xFormatter(value) {
+			return 't+' + value;
+		},
+		yFormatter(value) {
+			return value + '%';
+		},
+		thresholds: [{value: 15, label: 'warn', color: 'orange'}]
+	});
+
+	assert.deepStrictEqual(plain(model.xLabels), ['t+0', 't+1']);
+	assert.deepStrictEqual(plain(model.yTicks.map(function(tick) {
+		return tick.label;
+	})), ['0%', '20%']);
+	assert.strictEqual(model.thresholds.length, 1);
+	assert.strictEqual(model.thresholds[0].label, 'warn');
+	assert.strictEqual(model.thresholds[0].color, 'orange');
+	assert(Number.isFinite(model.thresholds[0].y));
+});
+
 runTest('createDataSet applies maxPoints to labels and series data', function() {
 	const core = loadCore();
 	const dataSet = core.createDataSet(['a', 'b', 'c', 'd'], [
@@ -157,6 +209,27 @@ runTest('appendSample appends object values by series id and keeps maxPoints', f
 	assert.deepStrictEqual(plain(dataSet.labels), ['b', 'c', 'd']);
 	assert.deepStrictEqual(plain(dataSet.series[0].data), [2, 3, 4]);
 	assert.deepStrictEqual(plain(dataSet.series[1].data), [20, 30, 40]);
+});
+
+runTest('appendSample preserves chart quality options', function() {
+	const core = loadCore();
+	let dataSet = core.createDataSet(['a'], [
+		{data: [1], legend: {id: 'rx'}}
+	], {text: 'Traffic'}, {
+		maxPoints: 2,
+		yMin: 0,
+		yMax: 100,
+		yUnit: ' Mbps',
+		thresholds: [{value: 80, label: 'limit'}]
+	});
+
+	dataSet = core.appendSample(dataSet, 'b', {rx: 2});
+
+	assert.strictEqual(dataSet.options.maxPoints, 2);
+	assert.strictEqual(dataSet.options.yMin, 0);
+	assert.strictEqual(dataSet.options.yMax, 100);
+	assert.strictEqual(dataSet.options.yUnit, ' Mbps');
+	assert.strictEqual(dataSet.options.thresholds[0].label, 'limit');
 });
 
 runTest('appendSample infers series from object values when no series exist yet', function() {

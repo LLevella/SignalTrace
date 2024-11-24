@@ -97,6 +97,96 @@ define([], function() {
 		return normalizeMaxPoints(options);
 	}
 
+	function readFiniteOption(options, fallback, key) {
+		if (options && typeof options === 'object' && key in options) {
+			return toFiniteNumber(options[key]);
+		}
+
+		if (fallback && typeof fallback === 'object' && key in fallback) {
+			return toFiniteNumber(fallback[key]);
+		}
+
+		return null;
+	}
+
+	function readPositiveOption(options, fallback, key, defaultValue) {
+		let value = null;
+
+		if (options && typeof options === 'object' && key in options) {
+			value = toPositiveNumber(options[key], null);
+		}
+		else if (fallback && typeof fallback === 'object' && key in fallback) {
+			value = toPositiveNumber(fallback[key], null);
+		}
+
+		return value === null ? defaultValue : value;
+	}
+
+	function readFunctionOption(options, fallback, key) {
+		if (options && typeof options === 'object' && typeof options[key] === 'function') {
+			return options[key];
+		}
+
+		if (fallback && typeof fallback === 'object' && typeof fallback[key] === 'function') {
+			return fallback[key];
+		}
+
+		return null;
+	}
+
+	function readStringOption(options, fallback, key, defaultValue) {
+		if (options && typeof options === 'object' && options[key] !== undefined && options[key] !== null) {
+			return String(options[key]);
+		}
+
+		if (fallback && typeof fallback === 'object' && fallback[key] !== undefined && fallback[key] !== null) {
+			return String(fallback[key]);
+		}
+
+		return defaultValue;
+	}
+
+	function normalizeThresholds(thresholds, fallback) {
+		let source = Array.isArray(thresholds) ? thresholds : Array.isArray(fallback) ? fallback : [];
+
+		return source
+			.map(function(threshold) {
+				let value = threshold && toFiniteNumber(threshold.value);
+				if (value === null) {
+					return null;
+				}
+
+				return {
+					value: value,
+					label: threshold.label !== undefined && threshold.label !== null ? String(threshold.label) : "",
+					color: threshold.color || "#d97706",
+					lineWidth: toPositiveNumber(threshold.lineWidth, 1)
+				};
+			})
+			.filter(function(threshold) {
+				return threshold !== null;
+			});
+	}
+
+	function normalizeChartOptions(options, fallback) {
+		options = options || {};
+		fallback = fallback || {};
+
+		let yTickCount = Math.floor(readPositiveOption(options, fallback, 'yTickCount', 6));
+
+		return {
+			maxPoints: readMaxPoints(options, fallback.maxPoints),
+			yMin: readFiniteOption(options, fallback, 'yMin'),
+			yMax: readFiniteOption(options, fallback, 'yMax'),
+			yPadding: Math.max(0, readPositiveOption(options, fallback, 'yPadding', 0)),
+			yTickCount: Math.max(2, Math.min(10, yTickCount)),
+			yUnit: readStringOption(options, fallback, 'yUnit', ""),
+			xFormatter: readFunctionOption(options, fallback, 'xFormatter'),
+			yFormatter: readFunctionOption(options, fallback, 'yFormatter'),
+			thresholds: normalizeThresholds(options.thresholds, fallback.thresholds)
+		};
+	}
+
 	function limitArray(items, maxPoints) {
 		let limited = Array.isArray(items) ? items.slice() : [];
 
@@ -117,8 +207,8 @@ define([], function() {
 
 	function createDataSet(labels, series, head, options) {
 		let rawSeries = Array.isArray(series) ? series : [];
-		let maxPoints = readMaxPoints(options, null);
-		let normalizedLabels = limitArray(normalizeLabels(labels, rawSeries), maxPoints);
+		let chartOptions = normalizeChartOptions(options, null);
+		let normalizedLabels = limitArray(normalizeLabels(labels, rawSeries), chartOptions.maxPoints);
 		let normalizedSeries = [];
 
 		for (let item of rawSeries) {
@@ -133,7 +223,8 @@ define([], function() {
 			labels: normalizedLabels,
 			series: normalizedSeries,
 			head: cloneHead(head),
-			maxPoints: maxPoints
+			maxPoints: chartOptions.maxPoints,
+			options: chartOptions
 		};
 	}
 
@@ -201,8 +292,9 @@ define([], function() {
 	function appendSample(dataSet, label, values, options) {
 		dataSet = dataSet || createDataSet([], [], {}, null);
 
-		let maxPoints = readMaxPoints(options, dataSet.maxPoints);
-		let current = createDataSet(dataSet.labels, dataSet.series, dataSet.head, {maxPoints: maxPoints});
+		let chartOptions = normalizeChartOptions(options, dataSet.options || {maxPoints: dataSet.maxPoints});
+		let maxPoints = chartOptions.maxPoints;
+		let current = createDataSet(dataSet.labels, dataSet.series, dataSet.head, chartOptions);
 		let series = current.series.length > 0 ? current.series : inferSeriesFromValues(values);
 		let labels = limitArray(current.labels.concat([label]), maxPoints);
 		let appendedSeries = [];
@@ -223,8 +315,124 @@ define([], function() {
 			labels: labels,
 			series: appendedSeries,
 			head: cloneHead(current.head),
-			maxPoints: maxPoints
+			maxPoints: maxPoints,
+			options: chartOptions
 		};
+	}
+
+	function formatAxisValue(value, axis, options, index) {
+		options = options || {};
+
+		if (axis === 'x' && typeof options.xFormatter === 'function') {
+			return String(options.xFormatter(value, index));
+		}
+
+		if (axis === 'y' && typeof options.yFormatter === 'function') {
+			return String(options.yFormatter(value, index));
+		}
+
+		if (axis === 'y') {
+			return formatTick(value) + (options.yUnit || "");
+		}
+
+		return String(value === undefined || value === null ? "" : value);
+	}
+
+	function createYScale(finiteValues, options) {
+		options = options || {};
+
+		let hasValues = finiteValues.length > 0;
+		let dataMin = hasValues ? Math.min.apply(null, finiteValues) : 0;
+		let dataMax = hasValues ? Math.max.apply(null, finiteValues) : 1;
+		let hasMin = options.yMin !== null;
+		let hasMax = options.yMax !== null;
+		let miny = hasMin ? options.yMin : dataMin;
+		let maxy = hasMax ? options.yMax : dataMax;
+
+		if (miny > maxy) {
+			let swap = miny;
+			miny = maxy;
+			maxy = swap;
+		}
+
+		if (miny === maxy) {
+			let padding = Math.max(1, Math.abs(miny) * 0.1);
+			if (!hasMin) {
+				miny -= padding;
+			}
+			if (!hasMax) {
+				maxy += padding;
+			}
+			if (miny === maxy) {
+				maxy += 1;
+			}
+		}
+
+		let range = maxy - miny;
+		if (options.yPadding > 0 && range > 0) {
+			let padding = range * options.yPadding;
+			if (!hasMin) {
+				miny -= padding;
+			}
+			if (!hasMax) {
+				maxy += padding;
+			}
+		}
+
+		return {miny: miny, maxy: maxy};
+	}
+
+	function createYTickValues(miny, maxy, tickCount) {
+		let ticks = [];
+		let count = Math.max(2, Math.min(10, Math.floor(tickCount || 6)));
+		let steps = count - 1;
+
+		for (let i = 0; i < count; i++) {
+			ticks.push(miny + ((maxy - miny) * i / steps));
+		}
+
+		return ticks;
+	}
+
+	function createYTicks(values, plotWin, options) {
+		let ticks = [];
+		let plotdy = Math.max(0, plotWin.yn - plotWin.y0);
+		let steps = Math.max(values.length - 1, 1);
+
+		for (let i = 0; i < values.length; i++) {
+			ticks.push({
+				value: values[i],
+				label: formatAxisValue(values[i], 'y', options, i),
+				y: plotWin.yn - i * (plotdy / steps)
+			});
+		}
+
+		return ticks;
+	}
+
+	function createThresholdModels(thresholds, plotWin, miny, maxy, options) {
+		let range = maxy - miny;
+		if (range <= 0) {
+			return [];
+		}
+
+		return thresholds
+			.map(function(threshold) {
+				if (threshold.value < miny || threshold.value > maxy) {
+					return null;
+				}
+
+				return {
+					value: threshold.value,
+					label: threshold.label || formatAxisValue(threshold.value, 'y', options, 0),
+					color: threshold.color,
+					lineWidth: threshold.lineWidth,
+					y: plotWin.yn - (plotWin.yn - plotWin.y0) * ((threshold.value - miny) / range)
+				};
+			})
+			.filter(function(threshold) {
+				return threshold !== null;
+			});
 	}
 
 	function createEmptyState() {
@@ -239,6 +447,10 @@ define([], function() {
 				head: {text: "", x: 0, y: 0},
 				lines: []
 			},
+			options: normalizeChartOptions(null, null),
+			thresholds: [],
+			xLabels: [],
+			yTicks: [],
 			minXTextSize: {width: 0},
 			maxXTextSize: {width: 0},
 			maxYTextSize: {width: 0}
@@ -297,9 +509,8 @@ define([], function() {
 		options = options || {};
 
 		let state = createEmptyState();
-		let dataSet = options.dataSet || createDataSet(options.labels, options.series, options.head, {
-			maxPoints: options.maxPoints
-		});
+		let dataSet = options.dataSet || createDataSet(options.labels, options.series, options.head, options);
+		let chartOptions = normalizeChartOptions(dataSet.options, options);
 		let series = Array.isArray(dataSet.series) ? dataSet.series : [];
 		let labels = Array.isArray(dataSet.labels) ? dataSet.labels : [];
 		let width = toPositiveNumber(options.width, 300);
@@ -308,8 +519,12 @@ define([], function() {
 		let measureText = options.measureText;
 
 		state.x = labels;
-		state.minXTextSize = measureValue(measureText, labels[0]);
-		state.maxXTextSize = measureValue(measureText, labels[labels.length - 1]);
+		state.options = chartOptions;
+		state.xLabels = labels.map(function(label, index) {
+			return formatAxisValue(label, 'x', chartOptions, index);
+		});
+		state.minXTextSize = measureValue(measureText, state.xLabels[0]);
+		state.maxXTextSize = measureValue(measureText, state.xLabels[state.xLabels.length - 1]);
 
 		let finiteValues = [];
 
@@ -336,18 +551,18 @@ define([], function() {
 			state.y.push({data: ydata});
 		}
 
-		if (finiteValues.length > 0) {
-			state.maxy = Math.max.apply(null, finiteValues);
-			state.miny = Math.min.apply(null, finiteValues);
-		}
-		else {
-			state.maxy = 1;
-			state.miny = 0;
-		}
+		let yScale = createYScale(finiteValues, chartOptions);
+		state.miny = yScale.miny;
+		state.maxy = yScale.maxy;
 
-		let minYTextSize = measureValue(measureText, formatTick(state.miny));
-		let maxYTextSize = measureValue(measureText, formatTick(state.maxy));
-		state.maxYTextSize = minYTextSize.width > maxYTextSize.width ? minYTextSize : maxYTextSize;
+		let yTickValues = createYTickValues(state.miny, state.maxy, chartOptions.yTickCount);
+		state.maxYTextSize = yTickValues
+			.map(function(value, index) {
+				return measureValue(measureText, formatAxisValue(value, 'y', chartOptions, index));
+			})
+			.reduce(function(max, measured) {
+				return measured.width > max.width ? measured : max;
+			}, {width: 0});
 
 		let head = dataSet.head || {};
 		let headText = head.text !== undefined ? String(head.text) : "";
@@ -368,6 +583,8 @@ define([], function() {
 		state.plotWin.x0 = Math.max(state.maxYTextSize.width, state.maxXTextSize.width) + fontPx;
 		state.plotWin.xn = Math.max(state.plotWin.x0, width - state.minXTextSize.width);
 		state.plotWin.yn = Math.max(state.plotWin.y0, height - 2 * fontPx);
+		state.yTicks = createYTicks(yTickValues, state.plotWin, chartOptions);
+		state.thresholds = createThresholdModels(chartOptions.thresholds, state.plotWin, state.miny, state.maxy, chartOptions);
 		state.plot = createPlotModel(state.x, state.y, state.plotWin, state.miny, state.maxy);
 
 		return state;
@@ -379,11 +596,18 @@ define([], function() {
 		createEmptyState: createEmptyState,
 		createModel: createModel,
 		createPlotModel: createPlotModel,
+		createThresholdModels: createThresholdModels,
+		createYScale: createYScale,
+		createYTicks: createYTicks,
+		createYTickValues: createYTickValues,
+		formatAxisValue: formatAxisValue,
 		formatTick: formatTick,
 		getSeriesKey: getSeriesKey,
+		normalizeChartOptions: normalizeChartOptions,
 		normalizeLabels: normalizeLabels,
 		normalizeMaxPoints: normalizeMaxPoints,
 		normalizeSeriesData: normalizeSeriesData,
+		normalizeThresholds: normalizeThresholds,
 		readMaxPoints: readMaxPoints,
 		resolveValue: resolveValue,
 		toFiniteNumber: toFiniteNumber,

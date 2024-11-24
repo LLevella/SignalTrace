@@ -21,8 +21,8 @@ define(['./chart-core'], function(core) {
 
 			this.win.x = core.toPositiveNumber(koWidth, this.canvas.width || this.canvas.clientWidth || 300);
 			this.win.y = core.toPositiveNumber(koHeight, this.canvas.height || this.canvas.clientHeight || 150);
-			this.canvas.width = this.win.x;
-			this.canvas.height = this.win.y;
+			this.pixelRatio = 1;
+			this.configureCanvasSize(this.win.x, this.win.y);
 
 			let computedStyle = null;
 			if (typeof window !== 'undefined' && window.getComputedStyle) {
@@ -72,6 +72,10 @@ define(['./chart-core'], function(core) {
 			this.plotWin = model.plotWin;
 			this.plot = model.plot;
 			this.legendData = model.legendData;
+			this.options = model.options;
+			this.thresholds = model.thresholds;
+			this.xLabels = model.xLabels;
+			this.yTicks = model.yTicks;
 			this.minXTextSize = model.minXTextSize;
 			this.maxXTextSize = model.maxXTextSize;
 			this.maxYTextSize = model.maxYTextSize;
@@ -84,6 +88,47 @@ define(['./chart-core'], function(core) {
 
 		measure(value) {
 			return this.ctx.measureText(String(value === undefined || value === null ? "" : value));
+		}
+
+		getPixelRatio() {
+			if (typeof window !== 'undefined') {
+				return core.toPositiveNumber(window.devicePixelRatio, 1);
+			}
+
+			return 1;
+		}
+
+		configureCanvasSize(width, height) {
+			this.win.x = core.toPositiveNumber(width, this.win.x || this.canvas.clientWidth || 300);
+			this.win.y = core.toPositiveNumber(height, this.win.y || this.canvas.clientHeight || 150);
+			this.pixelRatio = this.getPixelRatio();
+
+			if (this.canvas.style) {
+				this.canvas.style.width = this.win.x + "px";
+				this.canvas.style.height = this.win.y + "px";
+			}
+
+			this.canvas.width = Math.max(1, Math.round(this.win.x * this.pixelRatio));
+			this.canvas.height = Math.max(1, Math.round(this.win.y * this.pixelRatio));
+
+			if (this.ctx.setTransform) {
+				this.ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+			}
+		}
+
+		resize(width, height, options) {
+			options = options || {};
+			this.configureCanvasSize(width, height);
+
+			if (this.dataSet) {
+				this.applyDataSet(this.dataSet);
+			}
+
+			if (options.render) {
+				this.render();
+			}
+
+			return this;
 		}
 
 		circle(x, y, r, color="") {
@@ -167,6 +212,7 @@ define(['./chart-core'], function(core) {
 			this.clear();
 			this.axis();
 			this.pointsOnAxis();
+			this.thresholdLines();
 			this.legend();
 			this.graph();
 			return this;
@@ -221,7 +267,7 @@ define(['./chart-core'], function(core) {
 				this.ctx.lineTo(this.plot.x[i], this.plotWin.yn + dot);
 
 				if (i % filterx === 0 || i === this.plot.n - 1) {
-					this.ctx.fillText(this.x[i] + "", this.plot.x[i], this.plotWin.yn + this.font.px + dot);
+					this.ctx.fillText((this.xLabels && this.xLabels[i] !== undefined ? this.xLabels[i] : this.x[i]) + "", this.plot.x[i], this.plotWin.yn + this.font.px + dot);
 				}
 			}
 
@@ -230,23 +276,47 @@ define(['./chart-core'], function(core) {
 			this.ctx.textBaseline = "middle";
 			this.ctx.textAlign = "right";
 
-			let tickCount = Math.max(2, Math.min(6, this.plot.n));
-			let ySteps = Math.max(tickCount - 1, 1);
-			let plotdy = Math.max(0, this.plotWin.yn - this.plotWin.y0);
-			let valueStep = (this.maxy - this.miny) / ySteps;
-
 			filtery = Math.max(1, filtery);
-			for (let i = 0; i < tickCount; i++) {
-				let y = this.plotWin.yn - i * (plotdy / ySteps);
-				this.ctx.moveTo(this.plotWin.x0, y);
-				this.ctx.lineTo(this.plotWin.x0 - dot, y);
+			for (let i = 0; i < this.yTicks.length; i++) {
+				let tick = this.yTicks[i];
+				this.ctx.moveTo(this.plotWin.x0, tick.y);
+				this.ctx.lineTo(this.plotWin.x0 - dot, tick.y);
 
-				if (i % filtery === 0 || i === tickCount - 1) {
-					this.ctx.fillText(core.formatTick(this.miny + i * valueStep), this.plotWin.x0 - this.font.px, y);
+				if (i % filtery === 0 || i === this.yTicks.length - 1) {
+					this.ctx.fillText(tick.label, this.plotWin.x0 - this.font.px, tick.y);
 				}
 			}
 
 			this.ctx.stroke();
+		}
+
+		thresholdLines() {
+			if (!this.thresholds || this.thresholds.length === 0) {
+				return;
+			}
+
+			let previousTextAlign = this.ctx.textAlign;
+			let previousTextBaseline = this.ctx.textBaseline;
+
+			this.ctx.textAlign = "left";
+			this.ctx.textBaseline = "bottom";
+
+			for (let threshold of this.thresholds) {
+				this.ctx.beginPath();
+				this.ctx.strokeStyle = threshold.color;
+				this.ctx.fillStyle = threshold.color;
+				this.ctx.lineWidth = threshold.lineWidth;
+				this.ctx.moveTo(this.plotWin.x0, threshold.y);
+				this.ctx.lineTo(this.plotWin.xn, threshold.y);
+				this.ctx.stroke();
+
+				if (threshold.label) {
+					this.ctx.fillText(threshold.label, this.plotWin.x0 + this.font.r, threshold.y - 2);
+				}
+			}
+
+			this.ctx.textAlign = previousTextAlign;
+			this.ctx.textBaseline = previousTextBaseline;
 		}
 
 		clear(...params) {

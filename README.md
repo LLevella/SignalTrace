@@ -19,7 +19,10 @@
 - принимать обычные значения вместо observable-функций;
 - безопасно переинициализироваться через повторный `init()`;
 - добавлять live-точки через `append(label, values)`;
-- ограничивать историю через `maxPoints`.
+- ограничивать историю через `maxPoints`;
+- рисовать на HiDPI/Retina canvas;
+- пересчитывать размеры через `resize(width, height)`;
+- задавать `yMin`, `yMax`, `yUnit`, formatters и thresholds.
 
 ## Устройство
 
@@ -66,7 +69,12 @@ define(['core/draw'], function(draw) {
 	chart.init([], [
 		{legend: {id: 'rx', text: 'rx', color: 'green'}},
 		{legend: {id: 'tx', text: 'tx', color: 'blue'}}
-	], {text: 'Traffic'}, {maxPoints: 300});
+	], {text: 'Traffic'}, {
+		maxPoints: 300,
+		yMin: 0,
+		yUnit: ' Mbps',
+		thresholds: [{value: 900, label: 'limit', color: 'orange'}]
+	});
 
 	chart.append('00:01', {rx: 120, tx: 84});
 	chart.render();
@@ -94,11 +102,11 @@ npm test
 2. Добавить live API: `maxPoints`, `append(label, values)` и `render()`.
 3. Расширить чистое ядро: расчет ticks, gaps, fixed/autoscale Y, units и
    форматтеры без DOM и без Knockout.
-4. Добавить современную упаковку: TypeScript, ESM/CJS bundle, npm package,
+4. Улучшить renderer: HiDPI, resize и thresholds.
+5. Добавить современную упаковку: TypeScript, ESM/CJS bundle, npm package,
    typed declarations, Vite/Vitest/Playwright и GitHub Actions.
-5. Сделать продуктовую нишу явной: микро-библиотека для live time-series
+6. Сделать продуктовую нишу явной: микро-библиотека для live time-series
    графиков в роутерах, IoT-панелях, embedded dashboards и сетевом мониторинге.
-6. Добавить ожидаемые фичи: HiDPI canvas, responsive resize, units/formatters,
-   gaps, fixed/autoscale Y, cursor tooltip, legend toggle и thresholds.
-7. Выпустить адаптеры: Web Component как базовый способ использования, затем
+7. Добавить ожидаемые фичи: cursor tooltip и legend toggle.
+8. Выпустить адаптеры: Web Component как базовый способ использования, затем
    тонкие wrappers для React, Vue, Svelte и legacy Knockout.
