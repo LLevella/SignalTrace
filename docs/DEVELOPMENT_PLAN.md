@@ -88,18 +88,17 @@ chart.render();
 
 ## Фаза 5. Modern Packaging
 
-Статус: planned.
+Статус: done.
 
 Задачи:
 
-- TypeScript;
-- ESM/CJS bundle;
-- npm package metadata;
-- typed declarations;
-- Vite/Vitest/Playwright;
-- GitHub Actions;
-- license;
-- changelog и semver-релизы.
+- добавлен package metadata и `exports`;
+- добавлен dependency-free build script для `dist/*.mjs` и `dist/*.cjs`;
+- добавлены TypeScript declarations в `dist/index.d.ts`;
+- добавлены TypeScript/Vite/Vitest/Playwright config files;
+- добавлен Vitest smoke test для modern ESM package output;
+- добавлен GitHub Actions CI;
+- добавлены MIT license, changelog и `0.1.0` version.
 
 ## Фаза 6. Framework-Agnostic Component
 

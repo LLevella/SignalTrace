@@ -1,6 +1,60 @@
 {
-  "private": true,
+  "name": "canvas-knockout-js",
+  "version": "0.1.0",
+  "description": "Small Canvas 2D time-series chart renderer with legacy Knockout support.",
+  "license": "MIT",
+  "author": "Irina <38900844+LLevella@users.noreply.github.com>",
+  "type": "commonjs",
+  "main": "./dist/draw.cjs",
+  "module": "./dist/draw.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/draw.mjs",
+      "require": "./dist/draw.cjs"
+    },
+    "./core": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/chart-core.mjs",
+      "require": "./dist/chart-core.cjs"
+    },
+    "./legacy/amd/draw": "./draw.js",
+    "./legacy/amd/core": "./chart-core.js",
+    "./legacy/amd/knockout": "./ko.draw.js"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "chart-core.js",
+    "draw.js",
+    "ko.draw.js",
+    "template.html",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
-    "test": "node test/chart-core.test.js && node test/draw.test.js"
+    "audit:prod": "npm audit --omit=dev",
+    "build": "node scripts/build-modern.js",
+    "check": "npm test && npm run build && node --check dist/chart-core.cjs && node --check dist/draw.cjs",
+    "test": "node test/chart-core.test.js && node test/draw.test.js",
+    "test:e2e": "playwright test",
+    "test:unit": "npm run build && vitest run",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "canvas",
+    "chart",
+    "time-series",
+    "knockout",
+    "monitoring"
+  ],
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "typescript": "6.0.3",
+    "vite": "5.4.21",
+    "vitest": "1.6.1"
   }
 }

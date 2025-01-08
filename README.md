@@ -63,28 +63,35 @@ define(['core/draw'], function(draw) {
 ## Live update
 
 ```js
-define(['core/draw'], function(draw) {
-	var chart = draw.create('traffic-canvas', 500, 300);
+import {create} from 'canvas-knockout-js';
 
-	chart.init([], [
-		{legend: {id: 'rx', text: 'rx', color: 'green'}},
-		{legend: {id: 'tx', text: 'tx', color: 'blue'}}
-	], {text: 'Traffic'}, {
-		maxPoints: 300,
-		yMin: 0,
-		yUnit: ' Mbps',
-		thresholds: [{value: 900, label: 'limit', color: 'orange'}]
-	});
+var chart = create('traffic-canvas', 500, 300);
 
-	chart.append('00:01', {rx: 120, tx: 84});
-	chart.render();
+chart.init([], [
+	{legend: {id: 'rx', text: 'rx', color: 'green'}},
+	{legend: {id: 'tx', text: 'tx', color: 'blue'}}
+], {text: 'Traffic'}, {
+	maxPoints: 300,
+	yMin: 0,
+	yUnit: ' Mbps',
+	thresholds: [{value: 900, label: 'limit', color: 'orange'}]
 });
+
+chart.append('00:01', {rx: 120, tx: 84});
+chart.render();
 ```
+
+Legacy AMD modules are still available through `./legacy/amd/*` package
+exports and the repository-root `chart-core.js`, `draw.js` and `ko.draw.js`
+files.
 
 ## Проверки
 
 ```sh
 npm test
+npm run build
+npm run test:unit
+npm run typecheck
 ```
 
 Тесты запускаются без браузера через небольшой `canvas` harness и проверяют
