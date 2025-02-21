@@ -102,14 +102,14 @@ chart.render();
 
 ## Фаза 6. Framework-Agnostic Component
 
-Статус: planned.
+Статус: done.
 
 Задачи:
 
-- Web Component как основной публичный компонент;
-- тонкие wrappers для React, Vue и Svelte;
-- legacy Knockout adapter сохранить отдельно;
-- live examples для router traffic, CPU/RAM, IoT sensor и compact dashboard.
+- добавлен `time-series-chart` Web Component;
+- добавлены тонкие adapters для React, Vue и Svelte;
+- legacy Knockout adapter сохранен через `./legacy/amd/knockout`;
+- добавлен live example для router traffic.
 
 ## Фаза 7. Adoption
 

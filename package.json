@@ -19,6 +19,22 @@
       "import": "./dist/chart-core.mjs",
       "require": "./dist/chart-core.cjs"
     },
+    "./web-component": {
+      "types": "./dist/web-component.d.ts",
+      "import": "./web-component.mjs"
+    },
+    "./adapters/react": {
+      "types": "./dist/adapters.d.ts",
+      "import": "./adapters/react.mjs"
+    },
+    "./adapters/vue": {
+      "types": "./dist/adapters.d.ts",
+      "import": "./adapters/vue.mjs"
+    },
+    "./adapters/svelte": {
+      "types": "./dist/adapters.d.ts",
+      "import": "./adapters/svelte.mjs"
+    },
     "./legacy/amd/draw": "./draw.js",
     "./legacy/amd/core": "./chart-core.js",
     "./legacy/amd/knockout": "./ko.draw.js"
@@ -26,8 +42,11 @@
   "files": [
     "dist",
     "docs",
+    "adapters",
+    "examples",
     "chart-core.js",
     "draw.js",
+    "web-component.mjs",
     "ko.draw.js",
     "template.html",
     "README.md",

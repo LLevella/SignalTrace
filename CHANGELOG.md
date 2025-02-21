@@ -8,3 +8,4 @@
 - Added rendering quality controls: HiDPI scaling, resize, fixed Y scale,
   formatters, units and thresholds.
 - Added modern ESM/CJS build outputs and TypeScript declarations.
+- Added Web Component, React/Vue/Svelte adapters and a router traffic example.

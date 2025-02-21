@@ -4,8 +4,11 @@ import * as core from './chart-core.mjs';
 		constructor(koCanvas, koWidth, koHeight) {
 			this.win = {x: 0, y: 0};
 
-			let canvasId = core.resolveValue(koCanvas);
-			this.canvas = document.getElementById(canvasId);
+			let canvasTarget = core.resolveValue(koCanvas);
+			let canvasId = canvasTarget;
+			this.canvas = canvasTarget && canvasTarget.getContext
+				? canvasTarget
+				: document.getElementById(canvasTarget);
 
 			if (!this.canvas) {
 				throw new Error("Canvas element not found: " + canvasId);

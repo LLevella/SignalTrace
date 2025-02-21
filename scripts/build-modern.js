@@ -188,6 +188,37 @@ declare const _default: {
 
 export default _default;
 `);
+
+	write('dist/web-component.d.ts', `import type {ChartOptions, Head, Series} from './index.d.ts';
+
+export class TimeSeriesChartElement extends HTMLElement {
+	chart: unknown;
+	setData(labels: unknown[], series: Series[], head?: Head, options?: ChartOptions): void;
+	append(label: unknown, values: Array<number | string | null | undefined> | Record<string, number | string | null | undefined>, options?: ChartOptions): void;
+	render(): void;
+}
+
+export function defineTimeSeriesChart(tagName?: string): CustomElementConstructor;
+`);
+
+	write('dist/adapters.d.ts', `import type {ChartOptions, Head, Series} from './index.d.ts';
+
+export interface Sample {
+	label: unknown;
+	values: Array<number | string | null | undefined> | Record<string, number | string | null | undefined>;
+	options?: ChartOptions;
+}
+
+export function createReactTimeSeriesChart(React: any, tagName?: string): any;
+export function createVueTimeSeriesChart(Vue: any, tagName?: string): any;
+export function timeSeriesChart(node: HTMLElement & {setData?: Function}, options?: {
+	labels?: unknown[];
+	series?: Series[];
+	head?: Head;
+	options?: ChartOptions;
+	samples?: Sample[];
+}): {update(nextOptions?: unknown): void; destroy(): void};
+`);
 }
 
 fs.rmSync(dist, {recursive: true, force: true});

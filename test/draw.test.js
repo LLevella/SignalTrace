@@ -179,6 +179,15 @@ runTest('constructor uses the resolved element instead of a global canvas', func
 	assert.strictEqual(canvas.style.height, '300px');
 });
 
+runTest('constructor accepts a canvas element directly for Shadow DOM use', function() {
+	const {drawModule, canvas} = createHarness();
+	const chart = drawModule.create(canvas, 400, 240);
+
+	assert.strictEqual(chart.canvas, canvas);
+	assert.strictEqual(chart.win.x, 400);
+	assert.strictEqual(chart.win.y, 240);
+});
+
 runTest('init does not mutate input data or legend objects', function() {
 	const {drawModule} = createHarness();
 	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);

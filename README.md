@@ -85,6 +85,30 @@ Legacy AMD modules are still available through `./legacy/amd/*` package
 exports and the repository-root `chart-core.js`, `draw.js` and `ko.draw.js`
 files.
 
+## Web Component
+
+```html
+<time-series-chart id="traffic" max-points="300" height="280"></time-series-chart>
+
+<script type="module">
+	import 'canvas-knockout-js/web-component';
+
+	const chart = document.getElementById('traffic');
+	chart.setData([], [
+		{legend: {id: 'rx', text: 'rx', color: 'green'}},
+		{legend: {id: 'tx', text: 'tx', color: 'blue'}}
+	], {text: 'Traffic'}, {yMin: 0, yUnit: ' Mbps'});
+
+	chart.append('00:01', {rx: 120, tx: 84});
+</script>
+```
+
+Thin framework adapters are available at:
+
+- `canvas-knockout-js/adapters/react`
+- `canvas-knockout-js/adapters/vue`
+- `canvas-knockout-js/adapters/svelte`
+
 ## Проверки
 
 ```sh

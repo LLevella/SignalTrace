@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Router Traffic Example</title>
+	<style>
+		body {
+			font-family: system-ui, sans-serif;
+			margin: 24px;
+		}
+
+		time-series-chart {
+			border: 1px solid #d4d4d8;
+			height: 280px;
+			max-width: 720px;
+		}
+	</style>
+</head>
+<body>
+	<time-series-chart id="traffic" max-points="60" height="280"></time-series-chart>
+
+	<script type="module">
+		import '../web-component.mjs';
+
+		const chart = document.getElementById('traffic');
+		chart.setData([], [
+			{legend: {id: 'rx', text: 'rx', color: 'green'}},
+			{legend: {id: 'tx', text: 'tx', color: 'blue'}}
+		], {text: 'Router traffic'}, {
+			yMin: 0,
+			yUnit: ' Mbps',
+			thresholds: [{value: 900, label: 'limit', color: 'orange'}]
+		});
+
+		setInterval(function() {
+			const time = new Date().toLocaleTimeString();
+			chart.append(time, {
+				rx: Math.round(100 + Math.random() * 600),
+				tx: Math.round(80 + Math.random() * 500)
+			});
+		}, 1000);
+	</script>
+</body>
+</html>
