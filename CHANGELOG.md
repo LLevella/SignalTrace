@@ -9,3 +9,5 @@
   formatters, units and thresholds.
 - Added modern ESM/CJS build outputs and TypeScript declarations.
 - Added Web Component, React/Vue/Svelte adapters and a router traffic example.
+- Added English docs, comparison notes, benchmark page and contribution
+  templates.

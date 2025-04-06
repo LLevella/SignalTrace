@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Append Benchmark</title>
+	<style>
+		body {
+			font-family: system-ui, sans-serif;
+			margin: 24px;
+		}
+
+		canvas {
+			border: 1px solid #d4d4d8;
+			display: block;
+			height: 280px;
+			width: 720px;
+		}
+	</style>
+</head>
+<body>
+	<h1>Append benchmark</h1>
+	<p id="result">Running...</p>
+	<canvas id="chart"></canvas>
+
+	<script type="module">
+		import {create} from '../dist/draw.mjs';
+
+		const chart = create('chart', 720, 280);
+		chart.init([], [
+			{legend: {id: 'rx', text: 'rx', color: 'green'}},
+			{legend: {id: 'tx', text: 'tx', color: 'blue'}}
+		], {text: 'Benchmark'}, {maxPoints: 300, yMin: 0});
+
+		const start = performance.now();
+		for (let i = 0; i < 5000; i++) {
+			chart.append(String(i), {
+				rx: Math.sin(i / 20) * 50 + 100,
+				tx: Math.cos(i / 30) * 40 + 90
+			});
+		}
+		chart.render();
+
+		document.getElementById('result').textContent =
+			'5000 appends in ' + Math.round(performance.now() - start) + 'ms';
+	</script>
+</body>
+</html>

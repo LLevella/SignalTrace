@@ -113,13 +113,13 @@ chart.render();
 
 ## Фаза 7. Adoption
 
-Статус: planned.
+Статус: done.
 
 Задачи:
 
-- англоязычный README;
-- документация "5 минут до первого графика";
-- benchmark page;
-- сравнение с Chart.js, uPlot и ECharts;
-- demo site;
-- issue templates и contribution guide.
+- добавлен англоязычный README;
+- добавлена документация "Getting Started";
+- добавлена benchmark page;
+- добавлено сравнение с Chart.js, uPlot и ECharts;
+- добавлен examples index как demo entry;
+- добавлены issue templates, pull request template и contribution guide.

@@ -1,71 +1,39 @@
 # canvas-knockout-js
 
-Небольшой AMD/Knockout-модуль для рисования кусочно-линейных графиков на
-`canvas`. Изначально проект был написан для интерфейсов с очень малым запасом
-памяти, например для отображения входящего и исходящего сетевого трафика.
+Small Canvas 2D time-series charts for live monitoring screens, with legacy
+Knockout/AMD support kept intact.
 
-## Текущее состояние
+The project started as a tiny graph renderer for memory-constrained interfaces
+such as network traffic pages on embedded devices. It is now shaped as a small
+framework-agnostic package for router dashboards, IoT panels, compact admin
+tools and live operational metrics.
 
-Проект остается legacy-прототипом: в нем нет npm-публикации, сборки, CI,
-типов, лицензии и современной документации. Базовый renderer уже отделен от
-примерной Knockout-страницы достаточно, чтобы его можно было стабилизировать
-и постепенно вынести в самостоятельную библиотеку.
+## Features
 
-## Что умеет renderer
+- Multiple line series on one `canvas`.
+- Live updates through `append(label, values)`.
+- Bounded history through `maxPoints`.
+- DOM-free core model in `chart-core.js`.
+- Canvas renderer with HiDPI/Retina scaling.
+- `resize(width, height)` for responsive layouts.
+- Fixed or autoscaled Y axis through `yMin`, `yMax`, `yPadding`.
+- Axis formatters, units, gaps and threshold lines.
+- ESM/CJS package output with TypeScript declarations.
+- Web Component plus thin React, Vue and Svelte adapters.
+- Legacy AMD/Knockout files still available.
 
-- рисовать несколько линейных серий на одном `canvas`;
-- показывать подписи осей и простую легенду;
-- работать с Knockout observable-значениями для `id`, ширины и высоты canvas;
-- принимать обычные значения вместо observable-функций;
-- безопасно переинициализироваться через повторный `init()`;
-- добавлять live-точки через `append(label, values)`;
-- ограничивать историю через `maxPoints`;
-- рисовать на HiDPI/Retina canvas;
-- пересчитывать размеры через `resize(width, height)`;
-- задавать `yMin`, `yMax`, `yUnit`, formatters и thresholds.
+## Install
 
-## Устройство
-
-- `chart-core.js` - чистое расчетное ядро без DOM: нормализует входные данные,
-  считает легенду, область построения и координаты точек.
-- `draw.js` - Canvas 2D renderer, который берет модель из `chart-core.js` и
-  рисует оси, подписи, легенду и линии.
-- `init.js` и `template.html` - пример legacy Knockout-интеграции.
-- `ko.draw.js` - минимальный Knockout binding.
-
-## Минимальный пример
-
-```js
-define(['core/draw'], function(draw) {
-	var chart = draw.create(
-		function() { return 'traffic-canvas'; },
-		function() { return 500; },
-		function() { return 300; }
-	);
-
-	chart.init(
-		['00:00', '00:01', '00:02'],
-		[
-			{data: [10, 40, 20], legend: {text: 'rx', color: 'green'}},
-			{data: [5, 20, 30], legend: {text: 'tx', color: 'blue'}}
-		],
-		{text: 'Traffic'}
-	);
-
-	chart.clear();
-	chart.axis();
-	chart.pointsOnAxis();
-	chart.legend();
-	chart.graph();
-});
+```sh
+npm install canvas-knockout-js
 ```
 
-## Live update
+## Modern Usage
 
 ```js
 import {create} from 'canvas-knockout-js';
 
-var chart = create('traffic-canvas', 500, 300);
+const chart = create('traffic-canvas', 500, 300);
 
 chart.init([], [
 	{legend: {id: 'rx', text: 'rx', color: 'green'}},
@@ -80,10 +48,6 @@ chart.init([], [
 chart.append('00:01', {rx: 120, tx: 84});
 chart.render();
 ```
-
-Legacy AMD modules are still available through `./legacy/amd/*` package
-exports and the repository-root `chart-core.js`, `draw.js` and `ko.draw.js`
-files.
 
 ## Web Component
 
@@ -103,41 +67,49 @@ files.
 </script>
 ```
 
-Thin framework adapters are available at:
+Framework adapters:
 
 - `canvas-knockout-js/adapters/react`
 - `canvas-knockout-js/adapters/vue`
 - `canvas-knockout-js/adapters/svelte`
 
-## Проверки
+Legacy AMD modules:
+
+- `canvas-knockout-js/legacy/amd/core`
+- `canvas-knockout-js/legacy/amd/draw`
+- `canvas-knockout-js/legacy/amd/knockout`
+
+## Project Layout
+
+- `chart-core.js` - DOM-free data normalization and plot model.
+- `draw.js` - Canvas 2D renderer.
+- `web-component.mjs` - `time-series-chart` custom element.
+- `adapters/` - React, Vue and Svelte integration helpers.
+- `dist/` - generated ESM/CJS package output and TypeScript declarations.
+- `examples/` - live examples and benchmark page.
+- `docs/` - development plan, getting started guide and comparison notes.
+
+## Checks
 
 ```sh
-npm test
-npm run build
+npm run check
 npm run test:unit
+npm run test:e2e
 npm run typecheck
+npm run audit:prod
+npm pack --dry-run
 ```
 
-Тесты запускаются без браузера через небольшой `canvas` harness и проверяют
-ошибки, которые раньше легко пропустить вручную: отсутствие глобального
-`canvas`, серии без легенды, одинокая точка, пустые данные, повторный `init()`
-и отсутствие мутации входных массивов. Отдельные тесты `chart-core` проверяют
-чистую модель без Canvas.
+## Documentation
 
-## Roadmap
+- [Getting Started](docs/GETTING_STARTED.md)
+- [Development Plan](docs/DEVELOPMENT_PLAN.md)
+- [Comparison](docs/COMPARISON.md)
+- [Contributing](CONTRIBUTING.md)
 
-Подробный план разработки сохранен в [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md).
+## Positioning
 
-1. Стабилизировать legacy API: покрыть тестами layout, подписи осей, цвета,
-   пропущенные значения и разные размеры canvas.
-2. Добавить live API: `maxPoints`, `append(label, values)` и `render()`.
-3. Расширить чистое ядро: расчет ticks, gaps, fixed/autoscale Y, units и
-   форматтеры без DOM и без Knockout.
-4. Улучшить renderer: HiDPI, resize и thresholds.
-5. Добавить современную упаковку: TypeScript, ESM/CJS bundle, npm package,
-   typed declarations, Vite/Vitest/Playwright и GitHub Actions.
-6. Сделать продуктовую нишу явной: микро-библиотека для live time-series
-   графиков в роутерах, IoT-панелях, embedded dashboards и сетевом мониторинге.
-7. Добавить ожидаемые фичи: cursor tooltip и legend toggle.
-8. Выпустить адаптеры: Web Component как базовый способ использования, затем
-   тонкие wrappers для React, Vue, Svelte и legacy Knockout.
+Use this project when you need a tiny live time-series chart with predictable
+memory usage and a very small API surface. Use Chart.js, Apache ECharts or
+uPlot when you need broader chart types, richer interaction systems or a
+larger ecosystem.
