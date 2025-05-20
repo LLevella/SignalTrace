@@ -155,6 +155,12 @@ runTest('createModel supports fixed Y scale, units and tick count', function() {
 	assertFinitePlot(model);
 });
 
+runTest('createYTickValues creates pleasant rounded ticks', function() {
+	const core = loadCore();
+
+	assert.deepStrictEqual(plain(core.createYTickValues(3, 97, 4)), [0, 50, 100]);
+});
+
 runTest('createModel supports x/y formatters and thresholds', function() {
 	const core = loadCore();
 	const model = core.createModel({
@@ -183,6 +189,26 @@ runTest('createModel supports x/y formatters and thresholds', function() {
 	assert.strictEqual(model.thresholds[0].label, 'warn');
 	assert.strictEqual(model.thresholds[0].color, 'orange');
 	assert(Number.isFinite(model.thresholds[0].y));
+});
+
+runTest('createModel normalizes theme, grid and cursor options', function() {
+	const core = loadCore();
+	const model = core.createModel({
+		labels: ['a', 'b'],
+		series: [{data: [1, 2]}],
+		width: 500,
+		height: 300,
+		fontPx: 12,
+		cursor: {snapRadius: 10},
+		grid: {x: true, y: false, color: '#ddd'},
+		theme: {axisColor: '#111', tooltipBackgroundColor: '#fff'}
+	});
+
+	assert.strictEqual(model.options.cursor.snapRadius, 10);
+	assert.strictEqual(model.grid.x, true);
+	assert.strictEqual(model.grid.y, false);
+	assert.strictEqual(model.grid.color, '#ddd');
+	assert.strictEqual(model.options.theme.axisColor, '#111');
 });
 
 runTest('createDataSet applies maxPoints to labels and series data', function() {

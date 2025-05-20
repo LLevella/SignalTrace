@@ -352,3 +352,53 @@ runTest('render draws formatted ticks and threshold lines', function() {
 	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === '20%'; }), 'render should draw formatted y tick labels');
 	assert(ctx.calls.some(function(call) { return call[0] === 'fillText' && call[1] === 'warn'; }), 'render should draw threshold labels');
 });
+
+runTest('render draws grid lines when grid is enabled', function() {
+	const {drawModule, ctx} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['a', 'b'], [{data: [1, 2], legend: {text: 'rx'}}], {text: ''}, {
+		grid: {x: true, y: true, color: '#dddddd'}
+	});
+	chart.render();
+
+	assert.strictEqual(chart.grid.x, true);
+	assert.strictEqual(chart.grid.y, true);
+	assert(ctx.calls.some(function(call) {
+		return call[0] === 'lineTo' && call[1] === chart.plotWin.xn;
+	}), 'grid rendering should draw horizontal lines');
+});
+
+runTest('toggleSeries hides a series from graph rendering', function() {
+	const {drawModule, ctx} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['a', 'b'], [
+		{data: [1, 2], legend: {id: 'rx', text: 'rx', color: 'green'}}
+	], {text: ''});
+	chart.toggleSeries('rx', false);
+	ctx.calls.length = 0;
+	chart.graph();
+
+	assert.strictEqual(chart.isSeriesHidden(0), true);
+	assert(!ctx.calls.some(function(call) { return call[0] === 'lineTo'; }), 'hidden series should not draw line segments');
+});
+
+runTest('cursorAt returns nearest point and render draws tooltip', function() {
+	const {drawModule, ctx} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['a', 'b'], [
+		{data: [1, 2], legend: {id: 'rx', text: 'rx', color: 'green'}}
+	], {text: ''}, {
+		cursor: {snapRadius: 40}
+	});
+	const point = chart.cursorAt(chart.plot.x[1], chart.plot.y[0][1], {render: true});
+
+	assert(point);
+	assert.strictEqual(point.index, 1);
+	assert.strictEqual(point.value, 2);
+	assert(ctx.calls.some(function(call) {
+		return call[0] === 'fillText' && String(call[1]).indexOf('b:') === 0;
+	}), 'cursor render should draw tooltip text');
+});

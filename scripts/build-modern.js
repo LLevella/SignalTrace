@@ -116,6 +116,9 @@ export interface ChartOptions {
 	yUnit?: string;
 	xFormatter?: (value: unknown, index: number) => string;
 	yFormatter?: (value: number, index: number) => string;
+	cursor?: {enabled?: boolean; tooltip?: boolean; snapRadius?: number};
+	grid?: {x?: boolean; y?: boolean; color?: string; lineWidth?: number};
+	theme?: Record<string, string>;
 	thresholds?: Threshold[];
 }
 
@@ -168,6 +171,10 @@ export interface Chart {
 	append(label: unknown, values: Array<number | string | null | undefined> | Record<string, number | string | null | undefined>, options?: ChartOptions & {render?: boolean}): Chart;
 	render(): Chart;
 	resize(width?: number, height?: number, options?: {render?: boolean}): Chart;
+	cursorAt(x: number, y: number, options?: {render?: boolean}): unknown;
+	nearestPoint(x: number, y: number): unknown;
+	toggleSeries(keyOrIndex: string | number, visible?: boolean): Chart;
+	isSeriesHidden(keyOrIndex: string | number): boolean;
 	clear(...params: number[]): void;
 	axis(color?: string, lineWidth?: number): void;
 	pointsOnAxis(lineWidth?: number, filterx?: number, filtery?: number, color?: string): void;

@@ -61,6 +61,8 @@ import * as core from './chart-core.mjs';
 			});
 
 			this.dataSet = core.createDataSet([], [], {}, null);
+			this.hiddenSeries = {};
+			this.lastCursor = null;
 			this.resetDataState();
 			this.ctx.font = this.font.style;
 		}
@@ -74,6 +76,7 @@ import * as core from './chart-core.mjs';
 			this.plot = model.plot;
 			this.legendData = model.legendData;
 			this.options = model.options;
+			this.grid = model.grid;
 			this.thresholds = model.thresholds;
 			this.xLabels = model.xLabels;
 			this.yTicks = model.yTicks;
@@ -84,6 +87,8 @@ import * as core from './chart-core.mjs';
 
 		resetDataState() {
 			this.dataSet = core.createDataSet([], [], {}, null);
+			this.hiddenSeries = {};
+			this.lastCursor = null;
 			this.applyModel(core.createEmptyState());
 		}
 
@@ -211,11 +216,16 @@ import * as core from './chart-core.mjs';
 
 		render() {
 			this.clear();
+			this.background();
+			this.gridLines();
 			this.axis();
 			this.pointsOnAxis();
 			this.thresholdLines();
 			this.legend();
 			this.graph();
+			if (this.lastCursor) {
+				this.drawCursor(this.lastCursor);
+			}
 			return this;
 		}
 
@@ -225,11 +235,49 @@ import * as core from './chart-core.mjs';
 
 		axis(color = "#000000", lineWidth = 1) {
 			this.ctx.beginPath();
-			this.ctx.strokeStyle = color;
+			this.ctx.strokeStyle = color || this.options.theme.axisColor;
 			this.ctx.lineWidth = lineWidth;
 			this.ctx.moveTo(this.plotWin.xn, this.plotWin.yn);
 			this.ctx.lineTo(this.plotWin.x0, this.plotWin.yn);
 			this.ctx.lineTo(this.plotWin.x0, this.plotWin.y0);
+			this.ctx.stroke();
+		}
+
+		background() {
+			let backgroundColor = this.options && this.options.theme ? this.options.theme.backgroundColor : "";
+			if (!backgroundColor) {
+				return;
+			}
+
+			let previousFillStyle = this.ctx.fillStyle;
+			this.ctx.fillStyle = backgroundColor;
+			this.ctx.fillRect(0, 0, this.win.x, this.win.y);
+			this.ctx.fillStyle = previousFillStyle;
+		}
+
+		gridLines() {
+			if (!this.grid || (!this.grid.x && !this.grid.y)) {
+				return;
+			}
+
+			this.ctx.beginPath();
+			this.ctx.strokeStyle = this.grid.color || this.options.theme.gridColor;
+			this.ctx.lineWidth = this.grid.lineWidth;
+
+			if (this.grid.y) {
+				for (let tick of this.yTicks) {
+					this.ctx.moveTo(this.plotWin.x0, tick.y);
+					this.ctx.lineTo(this.plotWin.xn, tick.y);
+				}
+			}
+
+			if (this.grid.x) {
+				for (let x of this.plot.x) {
+					this.ctx.moveTo(x, this.plotWin.y0);
+					this.ctx.lineTo(x, this.plotWin.yn);
+				}
+			}
+
 			this.ctx.stroke();
 		}
 
@@ -245,7 +293,7 @@ import * as core from './chart-core.mjs';
 				this.ctx.strokeStyle = color;
 			}
 			else if ('color' in this.font) {
-				this.ctx.strokeStyle = this.font.color;
+				this.ctx.strokeStyle = this.options.theme.fontColor || this.font.color;
 			}
 			else {
 				this.ctx.strokeStyle = 'black';
@@ -284,7 +332,7 @@ import * as core from './chart-core.mjs';
 				this.ctx.lineTo(this.plotWin.x0 - dot, tick.y);
 
 				if (i % filtery === 0 || i === this.yTicks.length - 1) {
-					this.ctx.fillText(tick.label, this.plotWin.x0 - this.font.px, tick.y);
+				this.ctx.fillText(tick.label, this.plotWin.x0 - this.font.px, tick.y);
 				}
 			}
 
@@ -332,7 +380,7 @@ import * as core from './chart-core.mjs';
 		legend(color) {
 			if (!color) {
 				if ('color' in this.font) {
-					color = this.font.color;
+					color = this.options.theme.fontColor || this.font.color;
 				}
 				else {
 					color = '#000000';
@@ -349,14 +397,50 @@ import * as core from './chart-core.mjs';
 
 			for (let line of this.legendData.lines) {
 				if ('text' in line) {
+					let disabled = this.isSeriesHidden(line);
 					if ('color' in line) {
-						this.circle(line.x - this.font.px, line.y, line.r, line.color);
+						this.circle(line.x - this.font.px, line.y, line.r, disabled ? this.options.theme.legendDisabledColor : line.color);
 					}
 
-					this.ctx.fillStyle = color;
+					this.ctx.fillStyle = disabled ? this.options.theme.legendDisabledColor : color;
 					this.ctx.fillText(line.text, line.x, line.y);
 				}
 			}
+		}
+
+		seriesKey(line, index) {
+			if (line && line.id !== undefined && line.id !== null) {
+				return String(line.id);
+			}
+
+			if (line && line.text !== undefined && line.text !== null) {
+				return String(line.text);
+			}
+
+			return String(index);
+		}
+
+		isSeriesHidden(lineOrIndex) {
+			let key = typeof lineOrIndex === 'number'
+				? this.seriesKey(this.legendData.lines[lineOrIndex], lineOrIndex)
+				: this.seriesKey(lineOrIndex, this.legendData.lines.indexOf(lineOrIndex));
+
+			return Boolean(this.hiddenSeries[key]);
+		}
+
+		toggleSeries(keyOrIndex, visible) {
+			let index = typeof keyOrIndex === 'number' ? keyOrIndex : -1;
+			let key = index >= 0
+				? this.seriesKey(this.legendData.lines[index], index)
+				: String(keyOrIndex);
+			let nextVisible = visible;
+
+			if (nextVisible === undefined) {
+				nextVisible = Boolean(this.hiddenSeries[key]);
+			}
+
+			this.hiddenSeries[key] = !nextVisible;
+			return this;
 		}
 
 		graph(lineWidth = 1, color = "#000000") {
@@ -372,6 +456,9 @@ import * as core from './chart-core.mjs';
 				let y = this.plot.y[yi];
 				let x = this.plot.x;
 				let line = this.legendData.lines[yi] || {};
+				if (this.isSeriesHidden(yi)) {
+					continue;
+				}
 				let lineColor = 'color' in line ? line.color : color;
 				let lineStarted = false;
 				let pointCount = 0;
@@ -407,6 +494,101 @@ import * as core from './chart-core.mjs';
 					this.ctx.stroke();
 				}
 			}
+		}
+
+		nearestPoint(canvasX, canvasY) {
+			if (!this.options.cursor.enabled || this.plot.n === 0) {
+				return null;
+			}
+
+			let best = null;
+
+			for (let yi = 0; yi < this.plot.y.length; yi++) {
+				if (this.isSeriesHidden(yi)) {
+					continue;
+				}
+
+				for (let i = 0; i < this.plot.n; i++) {
+					let x = this.plot.x[i];
+					let y = this.plot.y[yi][i];
+					if (!Number.isFinite(x) || !Number.isFinite(y)) {
+						continue;
+					}
+
+					let dx = x - canvasX;
+					let dy = y - canvasY;
+					let distance = Math.sqrt(dx * dx + dy * dy);
+					if (!best || distance < best.distance) {
+						best = {
+							distance: distance,
+							index: i,
+							seriesIndex: yi,
+							x: x,
+							y: y,
+							label: this.xLabels[i],
+							value: this.y[yi].data[i],
+							legend: this.legendData.lines[yi] || {}
+						};
+					}
+				}
+			}
+
+			if (best && best.distance <= this.options.cursor.snapRadius) {
+				return best;
+			}
+
+			return null;
+		}
+
+		cursorAt(canvasX, canvasY, options) {
+			let point = this.nearestPoint(canvasX, canvasY);
+			this.lastCursor = point;
+
+			if (point && options && options.render) {
+				this.render();
+			}
+
+			return point;
+		}
+
+		drawCursor(point) {
+			if (!point) {
+				return;
+			}
+
+			let theme = this.options.theme;
+			this.ctx.beginPath();
+			this.ctx.strokeStyle = theme.cursorColor;
+			this.ctx.lineWidth = 1;
+			this.ctx.moveTo(point.x, this.plotWin.y0);
+			this.ctx.lineTo(point.x, this.plotWin.yn);
+			this.ctx.stroke();
+			this.circle(point.x, point.y, Math.max(3, this.font.r / 2), point.legend.color || theme.cursorColor);
+
+			if (!this.options.cursor.tooltip) {
+				return;
+			}
+
+			let label = point.label + ": " + core.formatAxisValue(point.value, 'y', this.options, point.index);
+			let width = this.measure(label).width + this.font.px;
+			let height = this.font.px * 1.8;
+			let x = Math.min(point.x + this.font.r, this.win.x - width - this.font.r);
+			let y = Math.max(this.plotWin.y0, point.y - height - this.font.r);
+
+			this.ctx.fillStyle = theme.tooltipBackgroundColor;
+			this.ctx.fillRect(x, y, width, height);
+			this.ctx.beginPath();
+			this.ctx.strokeStyle = theme.tooltipBorderColor;
+			this.ctx.moveTo(x, y);
+			this.ctx.lineTo(x + width, y);
+			this.ctx.lineTo(x + width, y + height);
+			this.ctx.lineTo(x, y + height);
+			this.ctx.lineTo(x, y);
+			this.ctx.stroke();
+			this.ctx.fillStyle = theme.tooltipTextColor;
+			this.ctx.textAlign = "left";
+			this.ctx.textBaseline = "middle";
+			this.ctx.fillText(label, x + this.font.r, y + height / 2);
 		}
 	}
 

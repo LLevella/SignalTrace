@@ -146,6 +146,70 @@ define([], function() {
 		return defaultValue;
 	}
 
+	function readBooleanOption(options, fallback, key, defaultValue) {
+		if (options && typeof options === 'object' && key in options) {
+			return Boolean(options[key]);
+		}
+
+		if (fallback && typeof fallback === 'object' && key in fallback) {
+			return Boolean(fallback[key]);
+		}
+
+		return defaultValue;
+	}
+
+	function readObjectOption(options, fallback, key) {
+		if (options && typeof options === 'object' && options[key] && typeof options[key] === 'object') {
+			return options[key];
+		}
+
+		if (fallback && typeof fallback === 'object' && fallback[key] && typeof fallback[key] === 'object') {
+			return fallback[key];
+		}
+
+		return {};
+	}
+
+	function normalizeTheme(theme, fallback) {
+		theme = theme || {};
+		fallback = fallback || {};
+
+		return {
+			axisColor: theme.axisColor || fallback.axisColor || "#000000",
+			backgroundColor: theme.backgroundColor || fallback.backgroundColor || "",
+			cursorColor: theme.cursorColor || fallback.cursorColor || "#52525b",
+			fontColor: theme.fontColor || fallback.fontColor || "#000000",
+			gridColor: theme.gridColor || fallback.gridColor || "#e4e4e7",
+			legendDisabledColor: theme.legendDisabledColor || fallback.legendDisabledColor || "#a1a1aa",
+			tooltipBackgroundColor: theme.tooltipBackgroundColor || fallback.tooltipBackgroundColor || "#ffffff",
+			tooltipBorderColor: theme.tooltipBorderColor || fallback.tooltipBorderColor || "#a1a1aa",
+			tooltipTextColor: theme.tooltipTextColor || fallback.tooltipTextColor || "#18181b"
+		};
+	}
+
+	function normalizeGrid(grid, fallback) {
+		grid = grid || {};
+		fallback = fallback || {};
+
+		return {
+			x: readBooleanOption(grid, fallback, 'x', false),
+			y: readBooleanOption(grid, fallback, 'y', true),
+			color: readStringOption(grid, fallback, 'color', "#e4e4e7"),
+			lineWidth: toPositiveNumber(grid.lineWidth !== undefined ? grid.lineWidth : fallback.lineWidth, 1)
+		};
+	}
+
+	function normalizeCursor(cursor, fallback) {
+		cursor = cursor || {};
+		fallback = fallback || {};
+
+		return {
+			enabled: readBooleanOption(cursor, fallback, 'enabled', true),
+			tooltip: readBooleanOption(cursor, fallback, 'tooltip', true),
+			snapRadius: toPositiveNumber(cursor.snapRadius !== undefined ? cursor.snapRadius : fallback.snapRadius, 24)
+		};
+	}
+
 	function normalizeThresholds(thresholds, fallback) {
 		let source = Array.isArray(thresholds) ? thresholds : Array.isArray(fallback) ? fallback : [];
 
@@ -183,6 +247,9 @@ define([], function() {
 			yUnit: readStringOption(options, fallback, 'yUnit', ""),
 			xFormatter: readFunctionOption(options, fallback, 'xFormatter'),
 			yFormatter: readFunctionOption(options, fallback, 'yFormatter'),
+			cursor: normalizeCursor(readObjectOption(options, fallback, 'cursor'), fallback.cursor),
+			grid: normalizeGrid(readObjectOption(options, fallback, 'grid'), fallback.grid),
+			theme: normalizeTheme(readObjectOption(options, fallback, 'theme'), fallback.theme),
 			thresholds: normalizeThresholds(options.thresholds, fallback.thresholds)
 		};
 	}
@@ -382,13 +449,41 @@ define([], function() {
 		return {miny: miny, maxy: maxy};
 	}
 
+	function niceNumber(range, round) {
+		if (range <= 0 || !Number.isFinite(range)) {
+			return 1;
+		}
+
+		let exponent = Math.floor(Math.log10(range));
+		let fraction = range / Math.pow(10, exponent);
+		let niceFraction = 1;
+
+		if (round) {
+			if (fraction < 1.5) niceFraction = 1;
+			else if (fraction < 3) niceFraction = 2;
+			else if (fraction < 7) niceFraction = 5;
+			else niceFraction = 10;
+		}
+		else {
+			if (fraction <= 1) niceFraction = 1;
+			else if (fraction <= 2) niceFraction = 2;
+			else if (fraction <= 5) niceFraction = 5;
+			else niceFraction = 10;
+		}
+
+		return niceFraction * Math.pow(10, exponent);
+	}
+
 	function createYTickValues(miny, maxy, tickCount) {
 		let ticks = [];
 		let count = Math.max(2, Math.min(10, Math.floor(tickCount || 6)));
-		let steps = count - 1;
+		let range = niceNumber(maxy - miny, false);
+		let spacing = niceNumber(range / (count - 1), true);
+		let niceMin = Math.floor(miny / spacing) * spacing;
+		let niceMax = Math.ceil(maxy / spacing) * spacing;
 
-		for (let i = 0; i < count; i++) {
-			ticks.push(miny + ((maxy - miny) * i / steps));
+		for (let value = niceMin; value <= niceMax + spacing / 2; value += spacing) {
+			ticks.push(Number(value.toFixed(12)));
 		}
 
 		return ticks;
@@ -448,6 +543,7 @@ define([], function() {
 				lines: []
 			},
 			options: normalizeChartOptions(null, null),
+			grid: normalizeGrid(null, null),
 			thresholds: [],
 			xLabels: [],
 			yTicks: [],
@@ -520,6 +616,7 @@ define([], function() {
 
 		state.x = labels;
 		state.options = chartOptions;
+		state.grid = chartOptions.grid;
 		state.xLabels = labels.map(function(label, index) {
 			return formatAxisValue(label, 'x', chartOptions, index);
 		});
@@ -603,10 +700,14 @@ define([], function() {
 		formatAxisValue: formatAxisValue,
 		formatTick: formatTick,
 		getSeriesKey: getSeriesKey,
+		niceNumber: niceNumber,
 		normalizeChartOptions: normalizeChartOptions,
+		normalizeCursor: normalizeCursor,
+		normalizeGrid: normalizeGrid,
 		normalizeLabels: normalizeLabels,
 		normalizeMaxPoints: normalizeMaxPoints,
 		normalizeSeriesData: normalizeSeriesData,
+		normalizeTheme: normalizeTheme,
 		normalizeThresholds: normalizeThresholds,
 		readMaxPoints: readMaxPoints,
 		resolveValue: resolveValue,
