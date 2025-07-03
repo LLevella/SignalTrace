@@ -81,6 +81,9 @@ function createHarness(options) {
 		clientWidth: options.clientWidth || 500,
 		clientHeight: options.clientHeight || 300,
 		style: {},
+		toDataURL(type) {
+			return 'data:' + (type || 'image/png') + ';base64,FAKE';
+		},
 		getContext(type) {
 			assert.strictEqual(type, '2d');
 			return ctx;
@@ -401,4 +404,52 @@ runTest('cursorAt returns nearest point and render draws tooltip', function() {
 	assert(ctx.calls.some(function(call) {
 		return call[0] === 'fillText' && String(call[1]).indexOf('b:') === 0;
 	}), 'cursor render should draw tooltip text');
+});
+
+runTest('appendMany batches samples and respects maxPoints', function() {
+	const {drawModule} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init([], [{legend: {id: 'rx', text: 'rx'}}], {text: ''}, {maxPoints: 3});
+	chart.appendMany([
+		{label: 'a', values: {rx: 1}},
+		{label: 'b', values: {rx: 2}},
+		{label: 'c', values: {rx: 3}},
+		{label: 'd', values: {rx: 4}}
+	]);
+
+	assert.deepStrictEqual(plain(chart.x), ['b', 'c', 'd']);
+	assert.deepStrictEqual(plain(chart.y[0].data), [2, 3, 4]);
+});
+
+runTest('pause queues samples until resume flushes them', function() {
+	const {drawModule} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init([], [{legend: {id: 'rx', text: 'rx'}}], {text: ''}, {maxPoints: 3});
+	chart.pause();
+	chart.append('a', {rx: 1});
+	chart.append('b', {rx: 2});
+
+	assert.strictEqual(chart.isPaused(), true);
+	assert.strictEqual(chart.pendingSamples.length, 2);
+	assert.deepStrictEqual(plain(chart.x), []);
+
+	chart.resume();
+	assert.strictEqual(chart.isPaused(), false);
+	assert.strictEqual(chart.pendingSamples.length, 0);
+	assert.deepStrictEqual(plain(chart.x), ['a', 'b']);
+});
+
+runTest('export APIs return JSON, CSV and image data', function() {
+	const {drawModule} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['a,b', 'c'], [
+		{data: [1, 2], legend: {id: 'rx', text: 'rx'}}
+	], {text: 'Traffic'});
+
+	assert.deepStrictEqual(plain(chart.toJSON().labels), ['a,b', 'c']);
+	assert.strictEqual(chart.toCSV(), 'label,rx\n"a,b",1\nc,2');
+	assert.strictEqual(chart.toImage('image/jpeg'), 'data:image/jpeg;base64,FAKE');
 });

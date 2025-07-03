@@ -169,12 +169,20 @@ export interface ChartModel {
 export interface Chart {
 	init(labels: unknown[], series: Series[], head?: Head, options?: ChartOptions | number): Chart;
 	append(label: unknown, values: Array<number | string | null | undefined> | Record<string, number | string | null | undefined>, options?: ChartOptions & {render?: boolean}): Chart;
+	appendMany(samples: Array<{label: unknown; values: Array<number | string | null | undefined> | Record<string, number | string | null | undefined>; options?: ChartOptions}>, options?: ChartOptions & {render?: boolean; force?: boolean}): Chart;
+	pause(): Chart;
+	resume(options?: {render?: boolean}): Chart;
+	isPaused(): boolean;
+	flush(options?: {render?: boolean}): Chart;
 	render(): Chart;
 	resize(width?: number, height?: number, options?: {render?: boolean}): Chart;
 	cursorAt(x: number, y: number, options?: {render?: boolean}): unknown;
 	nearestPoint(x: number, y: number): unknown;
 	toggleSeries(keyOrIndex: string | number, visible?: boolean): Chart;
 	isSeriesHidden(keyOrIndex: string | number): boolean;
+	toJSON(): DataSet;
+	toCSV(): string;
+	toImage(type?: string, quality?: number): string;
 	clear(...params: number[]): void;
 	axis(color?: string, lineWidth?: number): void;
 	pointsOnAxis(lineWidth?: number, filterx?: number, filtery?: number, color?: string): void;

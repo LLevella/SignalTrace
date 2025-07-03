@@ -65,6 +65,8 @@ const core = require('./chart-core.cjs');
 			this.dataSet = core.createDataSet([], [], {}, null);
 			this.hiddenSeries = {};
 			this.lastCursor = null;
+			this.paused = false;
+			this.pendingSamples = [];
 			this.resetDataState();
 			this.ctx.font = this.font.style;
 		}
@@ -91,6 +93,8 @@ const core = require('./chart-core.cjs');
 			this.dataSet = core.createDataSet([], [], {}, null);
 			this.hiddenSeries = {};
 			this.lastCursor = null;
+			this.paused = false;
+			this.pendingSamples = [];
 			this.applyModel(core.createEmptyState());
 		}
 
@@ -207,6 +211,12 @@ const core = require('./chart-core.cjs');
 
 		append(label, values, options) {
 			options = options || {};
+
+			if (this.paused && !options.force) {
+				this.pendingSamples.push({label: label, values: values, options: options});
+				return this;
+			}
+
 			this.applyDataSet(core.appendSample(this.dataSet, label, values, options));
 
 			if (options.render) {
@@ -214,6 +224,113 @@ const core = require('./chart-core.cjs');
 			}
 
 			return this;
+		}
+
+		appendMany(samples, options) {
+			options = options || {};
+			if (!Array.isArray(samples) || samples.length === 0) {
+				return this;
+			}
+
+			if (this.paused && !options.force) {
+				for (let sample of samples) {
+					this.pendingSamples.push({
+						label: sample.label,
+						values: sample.values,
+						options: Object.assign({}, options, sample.options || {})
+					});
+				}
+				return this;
+			}
+
+			let nextDataSet = this.dataSet;
+			for (let sample of samples) {
+				nextDataSet = core.appendSample(nextDataSet, sample.label, sample.values, Object.assign({}, options, sample.options || {}));
+			}
+			this.applyDataSet(nextDataSet);
+
+			if (options.render) {
+				this.render();
+			}
+
+			return this;
+		}
+
+		pause() {
+			this.paused = true;
+			return this;
+		}
+
+		resume(options) {
+			options = options || {};
+			this.paused = false;
+			this.flush({render: options.render});
+			return this;
+		}
+
+		isPaused() {
+			return this.paused;
+		}
+
+		flush(options) {
+			options = options || {};
+			let samples = this.pendingSamples.slice();
+			this.pendingSamples = [];
+			this.appendMany(samples, {force: true, render: options.render});
+			return this;
+		}
+
+		toJSON() {
+			return {
+				labels: this.dataSet.labels.slice(),
+				series: this.dataSet.series.map(function(series) {
+					return {
+						data: series.data.slice(),
+						legend: Object.assign({}, series.legend)
+					};
+				}),
+				head: Object.assign({}, this.dataSet.head),
+				options: Object.assign({}, this.dataSet.options)
+			};
+		}
+
+		toCSV() {
+			let headers = ['label'];
+			for (let i = 0; i < this.dataSet.series.length; i++) {
+				headers.push(this.seriesKey(this.dataSet.series[i].legend, i));
+			}
+
+			let lines = [headers.join(',')];
+			for (let row = 0; row < this.dataSet.labels.length; row++) {
+				let cells = [this.csvCell(this.dataSet.labels[row])];
+				for (let series of this.dataSet.series) {
+					cells.push(this.csvCell(series.data[row]));
+				}
+				lines.push(cells.join(','));
+			}
+
+			return lines.join('\n');
+		}
+
+		csvCell(value) {
+			if (value === null || value === undefined) {
+				return "";
+			}
+
+			let text = String(value);
+			if (/[",\n]/.test(text)) {
+				return '"' + text.replace(/"/g, '""') + '"';
+			}
+
+			return text;
+		}
+
+		toImage(type, quality) {
+			if (this.canvas.toDataURL) {
+				return this.canvas.toDataURL(type || 'image/png', quality);
+			}
+
+			return "";
 		}
 
 		render() {
