@@ -183,6 +183,10 @@ export interface Chart {
 	toJSON(): DataSet;
 	toCSV(): string;
 	toImage(type?: string, quality?: number): string;
+	setOptions(options: ChartOptions): Chart;
+	setTheme(theme: Record<string, string>): Chart;
+	getSummary(): string;
+	updateAccessibility(): string;
 	clear(...params: number[]): void;
 	axis(color?: string, lineWidth?: number): void;
 	pointsOnAxis(lineWidth?: number, filterx?: number, filtery?: number, color?: string): void;

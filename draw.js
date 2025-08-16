@@ -202,6 +202,7 @@ define(['./chart-core'], function(core) {
 				fontPx: this.font.px,
 				measureText: this.measure.bind(this)
 			}));
+			this.updateAccessibility();
 		}
 
 		init(x, y, head, options) {
@@ -333,6 +334,50 @@ define(['./chart-core'], function(core) {
 			return "";
 		}
 
+		setOptions(options) {
+			this.dataSet = core.createDataSet(this.dataSet.labels, this.dataSet.series, this.dataSet.head, Object.assign({}, this.dataSet.options, options || {}));
+			this.applyDataSet(this.dataSet);
+			return this;
+		}
+
+		setTheme(theme) {
+			return this.setOptions({theme: Object.assign({}, this.options.theme, theme || {})});
+		}
+
+		getSummary() {
+			let parts = [];
+			if (this.legendData.head.text) {
+				parts.push(this.legendData.head.text);
+			}
+
+			if (this.dataSet.labels.length === 0) {
+				parts.push('No data');
+				return parts.join('. ');
+			}
+
+			let lastIndex = this.dataSet.labels.length - 1;
+			parts.push('Latest label ' + this.dataSet.labels[lastIndex]);
+
+			for (let i = 0; i < this.dataSet.series.length; i++) {
+				let series = this.dataSet.series[i];
+				let label = this.seriesKey(series.legend, i);
+				let value = series.data[lastIndex];
+				parts.push(label + ' ' + (value === null ? 'missing' : value));
+			}
+
+			return parts.join('. ');
+		}
+
+		updateAccessibility() {
+			let summary = this.getSummary();
+			if (this.canvas.setAttribute) {
+				this.canvas.setAttribute('role', 'img');
+				this.canvas.setAttribute('aria-label', summary);
+			}
+			this.canvas.textContent = summary;
+			return summary;
+		}
+
 		render() {
 			this.clear();
 			this.background();
@@ -345,6 +390,7 @@ define(['./chart-core'], function(core) {
 			if (this.lastCursor) {
 				this.drawCursor(this.lastCursor);
 			}
+			this.updateAccessibility();
 			return this;
 		}
 

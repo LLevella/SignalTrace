@@ -76,6 +76,7 @@ function createHarness(options) {
 	const drawCode = fs.readFileSync(path.join(__dirname, '..', 'draw.js'), 'utf8');
 	const ctx = createFakeContext();
 	const canvas = {
+		attributes: {},
 		width: 0,
 		height: 0,
 		clientWidth: options.clientWidth || 500,
@@ -83,6 +84,9 @@ function createHarness(options) {
 		style: {},
 		toDataURL(type) {
 			return 'data:' + (type || 'image/png') + ';base64,FAKE';
+		},
+		setAttribute(name, value) {
+			this.attributes[name] = String(value);
 		},
 		getContext(type) {
 			assert.strictEqual(type, '2d');
@@ -452,4 +456,33 @@ runTest('export APIs return JSON, CSV and image data', function() {
 	assert.deepStrictEqual(plain(chart.toJSON().labels), ['a,b', 'c']);
 	assert.strictEqual(chart.toCSV(), 'label,rx\n"a,b",1\nc,2');
 	assert.strictEqual(chart.toImage('image/jpeg'), 'data:image/jpeg;base64,FAKE');
+});
+
+runTest('setTheme and setOptions update rendering options', function() {
+	const {drawModule} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['a'], [{data: [1], legend: {id: 'rx'}}], {text: ''});
+	chart.setTheme({axisColor: '#123456', backgroundColor: '#ffffff'});
+	chart.setOptions({grid: {x: true, y: true}});
+
+	assert.strictEqual(chart.options.theme.axisColor, '#123456');
+	assert.strictEqual(chart.options.theme.backgroundColor, '#ffffff');
+	assert.strictEqual(chart.grid.x, true);
+	assert.strictEqual(chart.grid.y, true);
+});
+
+runTest('accessibility summary updates aria-label and fallback text', function() {
+	const {drawModule, canvas} = createHarness();
+	const chart = drawModule.create(() => 'canvas', () => 500, () => 300);
+
+	chart.init(['00:01'], [
+		{data: [42], legend: {id: 'rx', text: 'rx'}}
+	], {text: 'Traffic'});
+	const summary = chart.getSummary();
+
+	assert.strictEqual(summary, 'Traffic. Latest label 00:01. rx 42');
+	assert.strictEqual(canvas.attributes.role, 'img');
+	assert.strictEqual(canvas.attributes['aria-label'], summary);
+	assert.strictEqual(canvas.textContent, summary);
 });
