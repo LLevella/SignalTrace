@@ -18,6 +18,10 @@ tools and live operational metrics.
 - `resize(width, height)` for responsive layouts.
 - Fixed or autoscaled Y axis through `yMin`, `yMax`, `yPadding`.
 - Axis formatters, units, gaps and threshold lines.
+- Grid lines, smarter rounded ticks, cursor tooltip and legend toggle.
+- Batched appends through `appendMany()`, pause/resume and queued flush.
+- JSON/CSV/image export helpers.
+- Theme tokens and accessibility summaries.
 - ESM/CJS package output with TypeScript declarations.
 - Web Component plus thin React, Vue and Svelte adapters.
 - Legacy AMD/Knockout files still available.
@@ -47,6 +51,10 @@ chart.init([], [
 
 chart.append('00:01', {rx: 120, tx: 84});
 chart.render();
+
+chart.cursorAt(240, 120, {render: true});
+chart.toggleSeries('tx', false).render();
+console.log(chart.toCSV());
 ```
 
 ## Web Component
@@ -106,6 +114,9 @@ npm pack --dry-run
 - [Development Plan](docs/DEVELOPMENT_PLAN.md)
 - [Comparison](docs/COMPARISON.md)
 - [Contributing](CONTRIBUTING.md)
+
+`npm run test:e2e` includes a browser visual smoke test that checks real canvas
+pixels in the benchmark example.
 
 ## Positioning
 

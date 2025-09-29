@@ -11,3 +11,6 @@
 - Added Web Component, React/Vue/Svelte adapters and a router traffic example.
 - Added English docs, comparison notes, benchmark page and contribution
   templates.
+- Added cursor tooltip, legend toggle, grid lines, smarter ticks, streaming
+  controls, pause/resume, exports, theming, accessibility summaries and real
+  canvas visual tests.

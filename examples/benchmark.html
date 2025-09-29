@@ -30,7 +30,12 @@
 		chart.init([], [
 			{legend: {id: 'rx', text: 'rx', color: 'green'}},
 			{legend: {id: 'tx', text: 'tx', color: 'blue'}}
-		], {text: 'Benchmark'}, {maxPoints: 300, yMin: 0});
+		], {text: 'Benchmark'}, {
+			maxPoints: 300,
+			yMin: 0,
+			grid: {x: true, y: true},
+			thresholds: [{value: 140, label: 'limit', color: 'orange'}]
+		});
 
 		const start = performance.now();
 		for (let i = 0; i < 5000; i++) {

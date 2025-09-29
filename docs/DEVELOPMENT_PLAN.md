@@ -123,3 +123,20 @@ chart.render();
 - добавлено сравнение с Chart.js, uPlot и ECharts;
 - добавлен examples index как demo entry;
 - добавлены issue templates, pull request template и contribution guide.
+
+## Фаза 8. Advanced Usability
+
+Статус: done.
+
+Результаты:
+
+- добавлены interactive cursor и tooltip;
+- добавлен legend toggle;
+- добавлены grid lines;
+- добавлены smarter rounded ticks;
+- добавлены streaming controls через `appendMany()`;
+- добавлены `pause()`, `resume()` и queued `flush()`;
+- добавлены `toJSON()`, `toCSV()` и `toImage()`;
+- добавлены theme tokens и `setTheme()`;
+- добавлены accessibility summary, `aria-label` и canvas fallback text;
+- добавлен Playwright visual smoke test по реальным canvas pixels.
