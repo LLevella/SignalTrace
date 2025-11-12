@@ -1,7 +1,7 @@
 {
-  "name": "canvas-knockout-js",
-  "version": "0.1.0",
-  "description": "Small Canvas 2D time-series chart renderer with legacy Knockout support.",
+  "name": "@llewella/signal-trace",
+  "version": "0.1.2",
+  "description": "Tiny canvas charts for live signals with legacy Knockout support.",
   "license": "MIT",
   "author": "Irina <38900844+LLevella@users.noreply.github.com>",
   "type": "commonjs",
@@ -76,5 +76,17 @@
     "typescript": "6.0.3",
     "vite": "5.4.21",
     "vitest": "1.6.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LLevella/SignalTrace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LLevella/SignalTrace/issues"
+  },
+  "homepage": "https://github.com/LLevella/SignalTrace#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Renamed the npm package to `@llewella/signal-trace`.
+- Added npmjs publish metadata.
+
 ## 0.1.0
 
 - Stabilized the legacy AMD canvas renderer.

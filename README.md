@@ -1,7 +1,7 @@
-# canvas-knockout-js
+# SignalTrace
 
-Small Canvas 2D time-series charts for live monitoring screens, with legacy
-Knockout/AMD support kept intact.
+Tiny canvas charts for live signals, with legacy Knockout/AMD support kept
+intact.
 
 The project started as a tiny graph renderer for memory-constrained interfaces
 such as network traffic pages on embedded devices. It is now shaped as a small
@@ -29,13 +29,13 @@ tools and live operational metrics.
 ## Install
 
 ```sh
-npm install canvas-knockout-js
+npm install @llewella/signal-trace
 ```
 
 ## Modern Usage
 
 ```js
-import {create} from 'canvas-knockout-js';
+import {create} from '@llewella/signal-trace';
 
 const chart = create('traffic-canvas', 500, 300);
 
@@ -63,7 +63,7 @@ console.log(chart.toCSV());
 <time-series-chart id="traffic" max-points="300" height="280"></time-series-chart>
 
 <script type="module">
-	import 'canvas-knockout-js/web-component';
+	import '@llewella/signal-trace/web-component';
 
 	const chart = document.getElementById('traffic');
 	chart.setData([], [
@@ -77,15 +77,15 @@ console.log(chart.toCSV());
 
 Framework adapters:
 
-- `canvas-knockout-js/adapters/react`
-- `canvas-knockout-js/adapters/vue`
-- `canvas-knockout-js/adapters/svelte`
+- `@llewella/signal-trace/adapters/react`
+- `@llewella/signal-trace/adapters/vue`
+- `@llewella/signal-trace/adapters/svelte`
 
 Legacy AMD modules:
 
-- `canvas-knockout-js/legacy/amd/core`
-- `canvas-knockout-js/legacy/amd/draw`
-- `canvas-knockout-js/legacy/amd/knockout`
+- `@llewella/signal-trace/legacy/amd/core`
+- `@llewella/signal-trace/legacy/amd/draw`
+- `@llewella/signal-trace/legacy/amd/knockout`
 
 ## Project Layout
 
