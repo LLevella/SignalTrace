@@ -1,5 +1,5 @@
 {
-  "name": "@llewella/signal-trace",
+  "name": "@llevella/signal-trace",
   "version": "0.1.2",
   "description": "Tiny canvas charts for live signals with legacy Knockout support.",
   "license": "MIT",
@@ -87,6 +87,6 @@
   "homepage": "https://github.com/LLevella/SignalTrace#readme",
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://npm.pkg.github.com/"
   }
 }

@@ -29,13 +29,14 @@ tools and live operational metrics.
 ## Install
 
 ```sh
-npm install @llewella/signal-trace
+npm config set @llevella:registry https://npm.pkg.github.com
+npm install @llevella/signal-trace
 ```
 
 ## Modern Usage
 
 ```js
-import {create} from '@llewella/signal-trace';
+import {create} from '@llevella/signal-trace';
 
 const chart = create('traffic-canvas', 500, 300);
 
@@ -63,7 +64,7 @@ console.log(chart.toCSV());
 <time-series-chart id="traffic" max-points="300" height="280"></time-series-chart>
 
 <script type="module">
-	import '@llewella/signal-trace/web-component';
+	import '@llevella/signal-trace/web-component';
 
 	const chart = document.getElementById('traffic');
 	chart.setData([], [
@@ -77,15 +78,15 @@ console.log(chart.toCSV());
 
 Framework adapters:
 
-- `@llewella/signal-trace/adapters/react`
-- `@llewella/signal-trace/adapters/vue`
-- `@llewella/signal-trace/adapters/svelte`
+- `@llevella/signal-trace/adapters/react`
+- `@llevella/signal-trace/adapters/vue`
+- `@llevella/signal-trace/adapters/svelte`
 
 Legacy AMD modules:
 
-- `@llewella/signal-trace/legacy/amd/core`
-- `@llewella/signal-trace/legacy/amd/draw`
-- `@llewella/signal-trace/legacy/amd/knockout`
+- `@llevella/signal-trace/legacy/amd/core`
+- `@llevella/signal-trace/legacy/amd/draw`
+- `@llevella/signal-trace/legacy/amd/knockout`
 
 ## Project Layout
 

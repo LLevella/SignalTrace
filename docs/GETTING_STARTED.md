@@ -11,7 +11,7 @@ This guide creates a live router traffic chart in a few minutes.
 ## 2. Create the Chart
 
 ```js
-import {create} from '@llewella/signal-trace';
+import {create} from '@llevella/signal-trace';
 
 const chart = create('traffic', 640, 280);
 
@@ -52,7 +52,7 @@ window.addEventListener('resize', function() {
 <time-series-chart id="traffic" max-points="120" height="280"></time-series-chart>
 
 <script type="module">
-	import '@llewella/signal-trace/web-component';
+	import '@llevella/signal-trace/web-component';
 
 	const chart = document.getElementById('traffic');
 	chart.setData([], [
