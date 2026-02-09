@@ -3,7 +3,7 @@
 ## 0.1.2
 
 - Renamed the npm package to `@llevella/signal-trace`.
-- Added GitHub Packages publish metadata.
+- Added public package metadata for GitHub Packages and npmjs.
 
 ## 0.1.0
 

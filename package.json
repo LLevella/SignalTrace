@@ -86,7 +86,6 @@
   },
   "homepage": "https://github.com/LLevella/SignalTrace#readme",
   "publishConfig": {
-    "access": "public",
-    "registry": "https://npm.pkg.github.com/"
+    "access": "public"
   }
 }

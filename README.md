@@ -28,6 +28,14 @@ tools and live operational metrics.
 
 ## Install
 
+From npm:
+
+```sh
+npm install @llevella/signal-trace
+```
+
+From GitHub Packages:
+
 ```sh
 npm config set @llevella:registry https://npm.pkg.github.com
 npm install @llevella/signal-trace
