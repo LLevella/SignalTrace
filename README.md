@@ -28,6 +28,9 @@ tools and live operational metrics.
 
 ## Install
 
+SignalTrace is published to npmjs as the primary public registry and mirrored
+to GitHub Packages.
+
 From npm:
 
 ```sh
