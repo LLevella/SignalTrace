@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Expanded npm search keywords and package description.
+
 ## 0.1.2
 
 - Renamed the npm package to `@llevella/signal-trace`.
